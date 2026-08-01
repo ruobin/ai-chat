@@ -30,6 +30,20 @@ struct ChatDetailView: View {
         }
         .navigationTitle(conversation.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        copyConversation()
+                    } label: {
+                        Label("Copy conversation", systemImage: "doc.on.doc")
+                    }
+                    .disabled(conversation.messages.isEmpty)
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+            }
+        }
         .alert(
             "Error",
             isPresented: Binding(
@@ -140,6 +154,15 @@ struct ChatDetailView: View {
         }
         return msgs
     }
+
+    /// Copies the whole conversation to the pasteboard as plain text, one
+    /// "Role: content" line per message.
+    private func copyConversation() {
+        let text = conversation.sortedMessages
+            .map { "\($0.role.rawValue.capitalized): \($0.content)" }
+            .joined(separator: "\n\n")
+        UIPasteboard.general.string = text
+    }
 }
 
 private struct EmptyChatHint: View {
@@ -210,6 +233,13 @@ struct MessageBubble: View {
                 .background(bubbleBackground)
                 .foregroundStyle(bubbleForeground)
                 .clipShape(BubbleShape(role: message.role))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = message.content
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                }
             if message.role != .user { Spacer(minLength: 40) }
         }
     }
