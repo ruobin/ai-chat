@@ -76,9 +76,10 @@ final class ChatSettings {
 
 enum ProviderPreset: String, CaseIterable, Identifiable {
     case openAI
+    case anthropic
+    case google
     case deepSeek
     case xAI
-    case groq
     case openRouter
     case ollama
     case custom
@@ -88,9 +89,10 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .openAI: return "OpenAI"
+        case .anthropic: return "Anthropic (Claude)"
+        case .google: return "Google (Gemini)"
         case .deepSeek: return "DeepSeek"
         case .xAI: return "xAI (Grok)"
-        case .groq: return "Groq"
         case .openRouter: return "OpenRouter"
         case .ollama: return "Ollama (local)"
         case .custom: return "Custom (OpenAI-compatible)"
@@ -100,9 +102,10 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     var defaultBaseURL: String {
         switch self {
         case .openAI: return "https://api.openai.com/v1"
+        case .anthropic: return "https://api.anthropic.com/v1"
+        case .google: return "https://generativelanguage.googleapis.com/v1beta/openai"
         case .deepSeek: return "https://api.deepseek.com/v1"
         case .xAI: return "https://api.x.ai/v1"
-        case .groq: return "https://api.groq.com/openai/v1"
         case .openRouter: return "https://openrouter.ai/api/v1"
         case .ollama: return "http://localhost:11434/v1"
         case .custom: return ""
@@ -112,9 +115,10 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     var defaultModel: String {
         switch self {
         case .openAI: return "gpt-4o-mini"
+        case .anthropic: return "claude-sonnet-4-6"
+        case .google: return "gemini-2.5-flash"
         case .deepSeek: return "deepseek-chat"
         case .xAI: return "grok-2-latest"
-        case .groq: return "llama-3.1-70b-versatile"
         case .openRouter: return "openai/gpt-4o-mini"
         case .ollama: return "llama3.1"
         case .custom: return ""
@@ -125,9 +129,10 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     var suggestedModels: [String] {
         switch self {
         case .openAI: return ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini"]
+        case .anthropic: return ["claude-sonnet-4-6", "claude-opus-5", "claude-haiku-4-5"]
+        case .google: return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
         case .deepSeek: return ["deepseek-chat", "deepseek-reasoner"]
         case .xAI: return ["grok-2-latest", "grok-2", "grok-beta", "grok-vision-beta"]
-        case .groq: return ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
         case .openRouter: return ["openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-70b-instruct"]
         case .ollama: return ["llama3.1", "llama3.2", "mistral", "qwen2.5", "phi3"]
         case .custom: return []
@@ -138,12 +143,14 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
         switch self {
         case .openAI:
             return "OpenAI's API. Get a key at platform.openai.com."
+        case .anthropic:
+            return "Anthropic's OpenAI-compatible endpoint for Claude models. Get a key at console.anthropic.com. Note: this compatibility layer doesn't support every OpenAI feature (see Anthropic's docs)."
+        case .google:
+            return "Google's OpenAI-compatible endpoint for Gemini models. Get a key at aistudio.google.com."
         case .deepSeek:
             return "DeepSeek's OpenAI-compatible endpoint. Get a key at platform.deepseek.com."
         case .xAI:
             return "xAI's Grok models. Get a key at console.x.ai."
-        case .groq:
-            return "Groq's fast inference for open models. Get a key at console.groq.com."
         case .openRouter:
             return "OpenRouter routes to many providers. Get a key at openrouter.ai."
         case .ollama:

@@ -9,9 +9,9 @@ and start chatting. Conversations are persisted locally with SwiftData.
 
 - Streaming responses via Server-Sent Events (`/chat/completions` with
   `stream: true`)
-- Presets for OpenAI, DeepSeek, xAI (Grok), Groq, OpenRouter, and local
-  Ollama, plus a custom endpoint option for anything OpenAI-compatible
-  (vLLM, LM Studio, Together, etc.)
+- Presets for OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek,
+  xAI (Grok), and OpenRouter, plus local Ollama and a custom endpoint
+  option for anything OpenAI-compatible (vLLM, LM Studio, Together, etc.)
 - Fetch the live list of models from your configured provider
   (`GET /models`) and pick one directly in Settings
 - Switch provider and model right from the chat page toolbar, without

@@ -36,9 +36,9 @@ persisted separately in the Keychain.
                 ▼
       ┌───────────────────┐
       │   ChatService       │
-      │   (streaming HTTP   │──────▶  Provider API (OpenAI, DeepSeek,
-      │    client)           │         xAI, Groq, OpenRouter, Ollama,
-      └───────────────────┘         or any custom OpenAI-compatible
+      │   (streaming HTTP   │──────▶  Provider API (OpenAI, Anthropic,
+      │    client)           │         Google, DeepSeek, xAI, OpenRouter,
+      └───────────────────┘         Ollama, or any custom OpenAI-compatible
                                       endpoint)
 ```
 

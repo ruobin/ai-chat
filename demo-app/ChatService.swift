@@ -3,7 +3,8 @@
 //  demo-app
 //
 //  OpenAI-compatible streaming chat completions client.
-//  Works with OpenAI, Groq, OpenRouter, Ollama, LM Studio, vLLM, etc.
+//  Works with OpenAI, Anthropic, Google, DeepSeek, xAI, OpenRouter, Ollama,
+//  LM Studio, vLLM, etc.
 //
 
 import Foundation
