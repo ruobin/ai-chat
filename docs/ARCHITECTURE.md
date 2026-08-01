@@ -127,7 +127,11 @@ again.
   `ChatService.streamCompletion`, appending tokens to a local
   `streamingContent` buffer (rendered as a separate "streaming bubble" while
   in flight) before committing the final text as an assistant `Message` on
-  completion or as an inline error message on failure.
+  completion or as an inline error message on failure. The navigation bar
+  title area doubles as a button showing the active provider/model, which
+  opens `ModelProviderPickerSheet` — a scoped version of the provider/model
+  pickers from `SettingsView` — so users can switch models without leaving
+  the conversation.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
   API key save/remove flow, and a "Fetch available models" action that
@@ -166,3 +170,8 @@ truncation/summarization strategy in place yet.
 - **Entitlements cleanup**: `demo_app.entitlements` declares
   `aps-environment` and a CloudKit container, neither of which is
   referenced by any code path today.
+- **Per-conversation model settings**: `ChatSettings` is a single global
+  singleton, so switching provider/model from `ModelProviderPickerSheet`
+  changes it for every conversation going forward, not just the one it was
+  opened from. Persisting a per-`Conversation` provider/model override
+  would let different chats use different models simultaneously.

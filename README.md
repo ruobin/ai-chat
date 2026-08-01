@@ -14,6 +14,8 @@ and start chatting. Conversations are persisted locally with SwiftData.
   (vLLM, LM Studio, Together, etc.)
 - Fetch the live list of models from your configured provider
   (`GET /models`) and pick one directly in Settings
+- Switch provider and model right from the chat page toolbar, without
+  leaving the conversation
 - API keys stored in the iOS Keychain, never in `UserDefaults` or logs
 - Local conversation history via SwiftData, with swipe-to-delete
 - Configurable system prompt and temperature per install

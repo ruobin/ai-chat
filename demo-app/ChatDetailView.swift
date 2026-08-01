@@ -14,6 +14,7 @@ struct ChatDetailView: View {
     @State private var streamingContent: String = ""
     @State private var isStreaming: Bool = false
     @State private var errorMessage: String?
+    @State private var showModelPicker: Bool = false
 
     private let service = ChatService()
     private let settings = ChatSettings.shared
@@ -28,11 +29,35 @@ struct ChatDetailView: View {
                 onSend: send
             )
         }
-        .navigationTitle(conversation.title)
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Button {
+                    showModelPicker = true
+                } label: {
+                    VStack(spacing: 1) {
+                        Text(conversation.title)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        HStack(spacing: 3) {
+                            Text(settings.detectedPreset.label)
+                            Text("·")
+                            Text(settings.modelName)
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    Button {
+                        showModelPicker = true
+                    } label: {
+                        Label("Model & provider", systemImage: "cpu")
+                    }
                     Button {
                         copyConversation()
                     } label: {
@@ -43,6 +68,9 @@ struct ChatDetailView: View {
                     Label("More", systemImage: "ellipsis.circle")
                 }
             }
+        }
+        .sheet(isPresented: $showModelPicker) {
+            ModelProviderPickerSheet()
         }
         .alert(
             "Error",
@@ -270,6 +298,146 @@ private struct BubbleShape: Shape {
             byRoundingCorners: corners,
             cornerRadii: CGSize(width: 18, height: 18)
         ).cgPath)
+    }
+}
+
+/// Lightweight sheet for switching provider/model directly from the chat
+/// page, without diving into full Settings. Mirrors the provider/model
+/// pickers in `SettingsView` but scoped to just those two concerns.
+private struct ModelProviderPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var settings = ChatSettings.shared
+    @State private var preset: ProviderPreset
+
+    @State private var availableModels: [ProviderModel] = []
+    @State private var isFetchingModels: Bool = false
+    @State private var fetchModelsError: String?
+
+    private let service = ChatService()
+
+    init() {
+        let s = ChatSettings.shared
+        let resolved = ProviderPreset.allCases.first { $0.defaultBaseURL == s.baseURLString } ?? .custom
+        _preset = State(initialValue: resolved)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Provider") {
+                    Picker("Preset", selection: $preset) {
+                        ForEach(ProviderPreset.allCases) { p in
+                            Text(p.label).tag(p)
+                        }
+                    }
+                    .onChange(of: preset) { _, new in
+                        if !new.defaultBaseURL.isEmpty {
+                            settings.baseURLString = new.defaultBaseURL
+                        }
+                        if !new.defaultModel.isEmpty {
+                            settings.modelName = new.defaultModel
+                        }
+                        availableModels = []
+                        fetchModelsError = nil
+                    }
+                    if preset == .custom {
+                        TextField("Base URL", text: $settings.baseURLString)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                    }
+                    if !settings.hasAPIKey && !preset.allowsEmptyKey {
+                        Label("No API key set for this provider. Open full Settings to add one.", systemImage: "exclamationmark.triangle")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
+                }
+
+                Section {
+                    TextField("Model name", text: $settings.modelName)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+
+                    Button {
+                        Task { await fetchModels() }
+                    } label: {
+                        if isFetchingModels {
+                            HStack {
+                                ProgressView()
+                                Text("Fetching models…")
+                            }
+                        } else {
+                            Label("Fetch available models", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(isFetchingModels)
+
+                    if let fetchModelsError {
+                        Text(fetchModelsError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+
+                    if !availableModels.isEmpty {
+                        ForEach(availableModels, id: \.id) { model in
+                            Button {
+                                settings.modelName = model.id
+                            } label: {
+                                HStack {
+                                    Text(model.id)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if settings.modelName == model.id {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(Color.accentColor)
+                                    }
+                                }
+                            }
+                        }
+                    } else if !preset.suggestedModels.isEmpty {
+                        ForEach(preset.suggestedModels, id: \.self) { model in
+                            Button {
+                                settings.modelName = model
+                            } label: {
+                                HStack {
+                                    Text(model)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if settings.modelName == model {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(Color.accentColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Model")
+                } footer: {
+                    Text("Applies to new messages sent in this conversation onward.")
+                        .font(.footnote)
+                }
+            }
+            .navigationTitle("Model & Provider")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func fetchModels() async {
+        isFetchingModels = true
+        fetchModelsError = nil
+        defer { isFetchingModels = false }
+        do {
+            availableModels = try await service.fetchModels()
+        } catch {
+            availableModels = []
+            fetchModelsError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 }
 
