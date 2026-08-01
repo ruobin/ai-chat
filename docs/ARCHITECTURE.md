@@ -97,6 +97,15 @@ Error handling:
 `ChatService` holds no per-request state; a new instance is safe to create
 per call (see `ChatDetailView`, which holds one instance for its lifetime).
 
+`ChatService.fetchModels()` calls `GET {baseURL}/models` (the standard
+OpenAI-compatible models-list endpoint) and decodes `{ "data": [{ "id": ... }] }`
+into `[ProviderModel]`, sorted alphabetically. It shares the same auth and
+error-handling conventions as `streamCompletion` (missing-key check,
+invalid-URL check, `.http` on non-2xx). `SettingsView` uses this to let the
+user fetch and pick from the live list of models their configured provider
+actually supports, instead of relying solely on the static
+`suggestedModels` per preset.
+
 ### Secure storage (`KeychainStore`)
 
 A minimal wrapper around the Keychain Services API (`SecItemAdd` /
@@ -120,8 +129,9 @@ again.
   in flight) before committing the final text as an assistant `Message` on
   completion or as an inline error message on failure.
 - **`SettingsView`** — provider preset picker (drives base URL + model
-  defaults), base URL/model/system prompt/temperature editors, and the
-  API key save/remove flow.
+  defaults), base URL/model/system prompt/temperature editors, the
+  API key save/remove flow, and a "Fetch available models" action that
+  calls `ChatService.fetchModels()` and surfaces the result as a picker.
 
 ## Data flow: sending a message
 

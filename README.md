@@ -12,6 +12,8 @@ and start chatting. Conversations are persisted locally with SwiftData.
 - Presets for OpenAI, DeepSeek, xAI (Grok), Groq, OpenRouter, and local
   Ollama, plus a custom endpoint option for anything OpenAI-compatible
   (vLLM, LM Studio, Together, etc.)
+- Fetch the live list of models from your configured provider
+  (`GET /models`) and pick one directly in Settings
 - API keys stored in the iOS Keychain, never in `UserDefaults` or logs
 - Local conversation history via SwiftData, with swipe-to-delete
 - Configurable system prompt and temperature per install

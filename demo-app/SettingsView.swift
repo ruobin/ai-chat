@@ -14,6 +14,12 @@ struct SettingsView: View {
     @State private var showSaved: Bool = false
     @State private var saveError: String?
 
+    @State private var availableModels: [ProviderModel] = []
+    @State private var isFetchingModels: Bool = false
+    @State private var fetchModelsError: String?
+
+    private let service = ChatService()
+
     init() {
         let s = ChatSettings.shared
         let resolved = ProviderPreset.allCases.first { preset in
@@ -125,6 +131,39 @@ struct SettingsView: View {
             TextField("Model name", text: $settings.modelName)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
+
+            Button {
+                Task { await fetchModels() }
+            } label: {
+                if isFetchingModels {
+                    HStack {
+                        ProgressView()
+                        Text("Fetching models…")
+                    }
+                } else {
+                    Label("Fetch available models", systemImage: "arrow.clockwise")
+                }
+            }
+            .disabled(isFetchingModels)
+
+            if let fetchModelsError {
+                Text(fetchModelsError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            if !availableModels.isEmpty {
+                Picker("Available models", selection: Binding(
+                    get: { settings.modelName },
+                    set: { settings.modelName = $0 }
+                )) {
+                    ForEach(availableModels) { model in
+                        Text(model.id).tag(model.id)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+            }
+
             if !preset.suggestedModels.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
@@ -152,8 +191,20 @@ struct SettingsView: View {
         } header: {
             Text("Model")
         } footer: {
-            Text("Tap a suggestion to fill the model field, or type your own.")
+            Text("Fetch the live list from your provider, tap a suggestion, or type your own model name.")
                 .font(.footnote)
+        }
+    }
+
+    private func fetchModels() async {
+        isFetchingModels = true
+        fetchModelsError = nil
+        defer { isFetchingModels = false }
+        do {
+            availableModels = try await service.fetchModels()
+        } catch {
+            availableModels = []
+            fetchModelsError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 

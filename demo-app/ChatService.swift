@@ -56,6 +56,14 @@ private struct ProviderStreamResponse: Decodable {
     let choices: [ProviderStreamChoice]
 }
 
+struct ProviderModel: Decodable, Identifiable, Hashable, Sendable {
+    let id: String
+}
+
+private struct ProviderModelsResponse: Decodable {
+    let data: [ProviderModel]
+}
+
 struct ChatService {
     let settings: ChatSettings
 
@@ -121,6 +129,43 @@ struct ChatService {
                   !token.isEmpty
             else { continue }
             await onToken(token)
+        }
+    }
+
+    /// Fetches the list of models available from the configured provider via
+    /// the standard `GET /models` endpoint, sorted alphabetically by id.
+    func fetchModels() async throws -> [ProviderModel] {
+        let apiKey = settings.apiKey ?? ""
+        let preset = settings.detectedPreset
+        let requiresKey = !preset.allowsEmptyKey
+        if requiresKey && apiKey.isEmpty {
+            throw ChatProviderError.missingAPIKey
+        }
+        guard let base = URL(string: settings.baseURLString) else {
+            throw ChatProviderError.invalidURL
+        }
+        let url = base.appendingPathComponent("models")
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !apiKey.isEmpty {
+            req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        req.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw ChatProviderError.stream("Non-HTTP response")
+        }
+        if !(200..<300).contains(http.statusCode) {
+            let bodyText = String(data: data.prefix(4000), encoding: .utf8)
+            throw ChatProviderError.http(http.statusCode, bodyText)
+        }
+        do {
+            let parsed = try JSONDecoder().decode(ProviderModelsResponse.self, from: data)
+            return parsed.data.sorted { $0.id < $1.id }
+        } catch {
+            throw ChatProviderError.stream("Could not parse model list: \(error.localizedDescription)")
         }
     }
 }
