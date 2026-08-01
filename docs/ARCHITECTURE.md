@@ -198,9 +198,6 @@ truncation/summarization strategy in place yet.
   ships to users with existing data.
 - **Context length management**: long conversations are resent in full on
   every request with no truncation or summarization.
-- **Entitlements cleanup**: `demo_app.entitlements` declares
-  `aps-environment` and a CloudKit container, neither of which is
-  referenced by any code path today.
 - **Per-conversation model settings**: `ChatSettings` is a single global
   singleton, so switching provider/model from `ModelProviderPickerSheet`
   changes it for every conversation going forward, not just the one it was
