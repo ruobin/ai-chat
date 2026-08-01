@@ -39,7 +39,11 @@ struct ProviderChatMessage: Codable, Sendable {
 struct ProviderRequest: Encodable {
     let model: String
     let messages: [ProviderChatMessage]
-    let temperature: Double
+    /// Omitted from the request body entirely when `nil`. Some models
+    /// (OpenAI's reasoning family: o1/o3/o4-mini, gpt-5.x, etc.) reject any
+    /// value other than the default and 400 if `temperature` is present at
+    /// all with a non-default value, so we only send it when supported.
+    let temperature: Double?
     let stream: Bool
 }
 
@@ -71,6 +75,32 @@ struct ChatService {
         self.settings = settings
     }
 
+    /// Best-effort detection of models that reject a non-default
+    /// `temperature`. Covers OpenAI's reasoning family (o1, o3, o4-mini,
+    /// gpt-5 and later) by name pattern, since new models in this family
+    /// are released faster than this list can be kept exhaustive — the
+    /// runtime retry in `streamCompletion` is the real safety net.
+    static func modelSupportsCustomTemperature(_ model: String) -> Bool {
+        let name = model.lowercased()
+        if name.hasPrefix("o1") || name.hasPrefix("o3") || name.hasPrefix("o4") {
+            return false
+        }
+        if name.hasPrefix("gpt-5") {
+            return false
+        }
+        return true
+    }
+
+    private func makeRequestBody(messages: [ProviderChatMessage], includeTemperature: Bool) throws -> Data {
+        let body = ProviderRequest(
+            model: settings.modelName,
+            messages: messages,
+            temperature: includeTemperature ? settings.temperature : nil,
+            stream: true
+        )
+        return try JSONEncoder().encode(body)
+    }
+
     /// Streams a chat completion. `onToken` is invoked for each incremental
     /// content chunk as it arrives from the provider.
     func streamCompletion(
@@ -87,33 +117,57 @@ struct ChatService {
             throw ChatProviderError.invalidURL
         }
         let url = base.appendingPathComponent("chat/completions")
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty {
-            req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        func makeRequest(includeTemperature: Bool) throws -> URLRequest {
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if !apiKey.isEmpty {
+                req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+            req.timeoutInterval = 120
+            req.httpBody = try makeRequestBody(messages: messages, includeTemperature: includeTemperature)
+            return req
         }
-        req.timeoutInterval = 120
 
-        let body = ProviderRequest(
-            model: settings.modelName,
-            messages: messages,
-            temperature: settings.temperature,
-            stream: true
-        )
-        req.httpBody = try JSONEncoder().encode(body)
+        var includeTemperature = Self.modelSupportsCustomTemperature(settings.modelName)
+        var req = try makeRequest(includeTemperature: includeTemperature)
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: req)
-        guard let http = response as? HTTPURLResponse else {
+        var (bytes, response) = try await URLSession.shared.bytes(for: req)
+        var http = response as? HTTPURLResponse
+        guard http != nil else {
             throw ChatProviderError.stream("Non-HTTP response")
         }
-        if !(200..<300).contains(http.statusCode) {
+
+        if includeTemperature, let status = http?.statusCode, status == 400 {
             var bodyText = ""
             for try await line in bytes.lines {
                 bodyText += line
                 if bodyText.count > 4000 { break }
             }
-            throw ChatProviderError.http(http.statusCode, bodyText.isEmpty ? nil : bodyText)
+            if bodyText.localizedCaseInsensitiveContains("temperature") {
+                // Provider rejected our temperature value even though we
+                // didn't recognize this model as reasoning-only. Retry once
+                // without it before giving up.
+                includeTemperature = false
+                req = try makeRequest(includeTemperature: includeTemperature)
+                (bytes, response) = try await URLSession.shared.bytes(for: req)
+                http = response as? HTTPURLResponse
+                guard http != nil else {
+                    throw ChatProviderError.stream("Non-HTTP response")
+                }
+            } else {
+                throw ChatProviderError.http(400, bodyText.isEmpty ? nil : bodyText)
+            }
+        }
+
+        guard let http, (200..<300).contains(http.statusCode) else {
+            var bodyText = ""
+            for try await line in bytes.lines {
+                bodyText += line
+                if bodyText.count > 4000 { break }
+            }
+            throw ChatProviderError.http(http?.statusCode ?? -1, bodyText.isEmpty ? nil : bodyText)
         }
 
         for try await line in bytes.lines {

@@ -226,10 +226,16 @@ struct SettingsView: View {
                         .monospacedDigit()
                 }
                 Slider(value: $settings.temperature, in: 0...2, step: 0.05)
+                    .disabled(!ChatService.modelSupportsCustomTemperature(settings.modelName))
             }
         } footer: {
-            Text("Lower values are more deterministic, higher values more creative.")
-                .font(.footnote)
+            if ChatService.modelSupportsCustomTemperature(settings.modelName) {
+                Text("Lower values are more deterministic, higher values more creative.")
+                    .font(.footnote)
+            } else {
+                Text("This model only supports the default temperature. This setting is ignored for reasoning models (o1/o3/o4-mini, gpt-5 and later).")
+                    .font(.footnote)
+            }
         }
     }
 
