@@ -8,6 +8,8 @@ import SwiftData
 
 @main
 struct demo_appApp: App {
+    @State private var settings = ChatSettings.shared
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Conversation.self,
@@ -25,6 +27,7 @@ struct demo_appApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(settings.theme.colorScheme)
         }
         .modelContainer(sharedModelContainer)
     }

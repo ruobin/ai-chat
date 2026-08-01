@@ -96,8 +96,14 @@ struct ChatDetailView: View {
                             .padding(.top, 80)
                     }
                     ForEach(conversation.sortedMessages) { message in
-                        MessageBubble(message: message)
-                            .id(message.id)
+                        MessageBubble(
+                            message: message,
+                            isStreaming: isStreaming,
+                            isLastMessage: message.id == conversation.sortedMessages.last?.id,
+                            onRetry: { regenerate(from: message, inclusive: false) },
+                            onRegenerate: { regenerate(from: message, inclusive: true) }
+                        )
+                        .id(message.id)
                     }
                     if isStreaming {
                         StreamingBubble(content: streamingContent)
@@ -140,6 +146,13 @@ struct ChatDetailView: View {
         }
         try? modelContext.save()
 
+        startStreaming()
+    }
+
+    /// Streams a new assistant response using the conversation's current
+    /// messages, appending the result (or an error message) on completion.
+    /// Shared by `send()` and the retry/regenerate actions.
+    private func startStreaming() {
         isStreaming = true
         streamingContent = ""
 
@@ -169,6 +182,27 @@ struct ChatDetailView: View {
             isStreaming = false
             streamingContent = ""
         }
+    }
+
+    /// Removes `message` (if `inclusive`) or everything strictly after it,
+    /// then requests a fresh assistant response. Used for "Retry" on a user
+    /// message (removes the failed/unwanted response(s) that followed it)
+    /// and "Regenerate" on an assistant message (discards it and anything
+    /// after, then asks the model again).
+    private func regenerate(from message: Message, inclusive: Bool) {
+        guard !isStreaming else { return }
+        let sorted = conversation.sortedMessages
+        guard let idx = sorted.firstIndex(where: { $0.id == message.id }) else { return }
+        let cutIndex = inclusive ? idx : idx + 1
+        guard cutIndex < sorted.count else { return }
+        let toRemove = sorted[cutIndex...]
+        for msg in toRemove {
+            conversation.messages.removeAll { $0.id == msg.id }
+            modelContext.delete(msg)
+        }
+        try? modelContext.save()
+        errorMessage = nil
+        startStreaming()
     }
 
     private func buildProviderMessages() -> [ProviderChatMessage] {
@@ -250,25 +284,57 @@ private struct TypingIndicator: View {
 
 struct MessageBubble: View {
     let message: Message
+    var isStreaming: Bool = false
+    var isLastMessage: Bool = false
+    var onRetry: (() -> Void)? = nil
+    var onRegenerate: (() -> Void)? = nil
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
-            Text(message.content)
-                .textSelection(.enabled)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(bubbleBackground)
-                .foregroundStyle(bubbleForeground)
-                .clipShape(BubbleShape(role: message.role))
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = message.content
-                    } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
+            HStack {
+                if message.role == .user { Spacer(minLength: 40) }
+                Text(message.content)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(bubbleBackground)
+                    .foregroundStyle(bubbleForeground)
+                    .clipShape(BubbleShape(role: message.role))
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = message.content
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        if message.role == .user, let onRetry {
+                            Button {
+                                onRetry()
+                            } label: {
+                                Label("Retry", systemImage: "arrow.clockwise")
+                            }
+                        }
+                        if message.role == .assistant, let onRegenerate {
+                            Button {
+                                onRegenerate()
+                            } label: {
+                                Label("Regenerate", systemImage: "arrow.clockwise")
+                            }
+                        }
                     }
+                if message.role != .user { Spacer(minLength: 40) }
+            }
+
+            if message.role == .assistant, let onRegenerate, !isStreaming, isLastMessage {
+                Button {
+                    onRegenerate()
+                } label: {
+                    Label("Regenerate", systemImage: "arrow.clockwise")
+                        .font(.caption)
                 }
-            if message.role != .user { Spacer(minLength: 40) }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 14)
+            }
         }
     }
 

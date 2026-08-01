@@ -8,6 +8,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 @Observable
 final class ChatSettings {
@@ -24,6 +25,9 @@ final class ChatSettings {
     }
     var temperature: Double {
         didSet { defaults.set(temperature, forKey: Keys.temperature) }
+    }
+    var theme: AppTheme {
+        didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
     }
 
     var hasAPIKey: Bool {
@@ -51,6 +55,7 @@ final class ChatSettings {
         static let systemPrompt = "settings.systemPrompt"
         static let temperature = "settings.temperature"
         static let apiKey = "api-key"
+        static let theme = "settings.theme"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -63,6 +68,8 @@ final class ChatSettings {
             ?? "You are a helpful assistant."
         let storedTemp = defaults.double(forKey: Keys.temperature)
         self.temperature = storedTemp == 0 ? 0.7 : storedTemp
+        self.theme = defaults.string(forKey: Keys.theme).flatMap(AppTheme.init(rawValue:))
+            ?? .system
     }
 
     func setAPIKey(_ key: String?) throws {
@@ -163,5 +170,40 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     /// Providers that don't require an API key.
     var allowsEmptyKey: Bool {
         self == .ollama || self == .custom
+    }
+}
+
+/// User-selectable appearance for the app, independent of the system-wide
+/// setting.
+enum AppTheme: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .system: return "circle.righthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
+
+    /// Maps to the `preferredColorScheme` value; `nil` follows the system.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
     }
 }

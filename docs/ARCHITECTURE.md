@@ -134,8 +134,39 @@ again.
   the conversation.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
-  API key save/remove flow, and a "Fetch available models" action that
-  calls `ChatService.fetchModels()` and surfaces the result as a picker.
+  API key save/remove flow, a "Fetch available models" action that
+  calls `ChatService.fetchModels()` and surfaces the result as a picker,
+  and an appearance section for choosing the app theme.
+
+### Appearance (`AppTheme`)
+
+`ChatSettings.theme` stores an `AppTheme` (`.system` / `.light` / `.dark`),
+mirrored to `UserDefaults` like the other non-secret settings.
+`demo_appApp` reads it and applies `.preferredColorScheme(settings.theme.colorScheme)`
+at the `WindowGroup` root, so the whole app (all sheets included) follows
+the chosen theme; `.system` maps to `nil`, which defers to the OS-level
+appearance setting. `SettingsView` exposes it as a segmented picker in the
+"Appearance" section.
+
+### Retry / regenerate
+
+`ChatDetailView` factors the send flow into `startStreaming()`, called both
+by `send()` (after appending a new user message) and by
+`regenerate(from:inclusive:)`. The latter is used for two context-menu
+actions on `MessageBubble`:
+
+- **Retry** (on a user message) — deletes everything *after* that message
+  (typically a failed or unwanted assistant reply) and re-requests a
+  completion using the same history up to and including that user message.
+- **Regenerate** (on an assistant message, also shown as a small inline
+  button under the most recent assistant reply) — deletes that message and
+  everything after it, then re-requests a completion.
+
+Both delete the trailing `Message`s from the `Conversation` and the
+`ModelContext`, then call `startStreaming()` to fetch a fresh response.
+This mutates conversation history rather than branching it — there is no
+support for keeping multiple alternate replies ("regenerate and compare")
+side by side.
 
 ## Data flow: sending a message
 
@@ -175,3 +206,7 @@ truncation/summarization strategy in place yet.
   changes it for every conversation going forward, not just the one it was
   opened from. Persisting a per-`Conversation` provider/model override
   would let different chats use different models simultaneously.
+- **No reply branching**: retry/regenerate overwrite history in place
+  (deleting the discarded messages) rather than keeping alternates. A
+  tree-structured message model would be needed to support comparing
+  multiple regenerated replies.

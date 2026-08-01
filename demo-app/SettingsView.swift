@@ -37,6 +37,7 @@ struct SettingsView: View {
                 modelSection
                 systemPromptSection
                 temperatureSection
+                appearanceSection
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -236,6 +237,17 @@ struct SettingsView: View {
                 Text("This model only supports the default temperature. This setting is ignored for reasoning models (o1/o3/o4-mini, gpt-5 and later).")
                     .font(.footnote)
             }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            Picker("Theme", selection: $settings.theme) {
+                ForEach(AppTheme.allCases) { theme in
+                    Label(theme.label, systemImage: theme.icon).tag(theme)
+                }
+            }
+            .pickerStyle(.segmented)
         }
     }
 
