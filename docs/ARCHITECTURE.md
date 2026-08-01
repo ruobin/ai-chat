@@ -69,11 +69,43 @@ non-secret settings (base URL, model name, system prompt, temperature) to
   editing the base URL to a value not equal to a preset's default (e.g.
   adding a trailing slash) will show as "Custom" even if it's really OpenAI.
 - `hasAPIKey` / `apiKey` — reads through to the Keychain on every access
-  (no in-memory caching), so it always reflects the current Keychain state.
+  (no in-memory caching), and are scoped to the *currently active* base URL
+  (see below) so they always reflect the right provider's key.
 
 `ProviderPreset` is a static enum of known providers with their default
 base URL, default model, suggested models list, and an `allowsEmptyKey`
 flag for providers that don't require auth (Ollama, custom).
+
+#### Multi-provider API keys and models
+
+Each provider gets its own independently-stored API key and remembered
+model, keyed by a normalized form of its base URL (trailing slashes and
+surrounding whitespace stripped):
+
+- **Keys**: `KeychainStore` accounts are named `"api-key::<normalized base
+  URL>"` rather than a single shared `"api-key"` account, so saving a key
+  for Anthropic doesn't touch or get overwritten by OpenAI's key.
+  `ChatSettings.apiKey(forBaseURL:)` / `hasAPIKey(forBaseURL:)` let callers
+  check an arbitrary provider's key without switching to it first.
+- **Models**: `ChatSettings.modelsByProvider` (a `[String: String]`
+  dictionary in `UserDefaults`, keyed the same way as the Keychain accounts)
+  remembers the last model used with each base URL. `applyPreset(_:)` is the
+  entry point both `SettingsView` and `ModelProviderPickerSheet` use to
+  switch providers: it sets the base URL, then restores the remembered
+  model for that URL if one exists, falling back to the preset's
+  `defaultModel` otherwise.
+- **Migration**: on first launch after this change, any key found under the
+  old single shared `"api-key"` Keychain account is copied to the
+  currently-active provider's scoped account and the legacy entry is
+  deleted (`migrateLegacyAPIKeyIfNeeded()`), so upgrading users don't lose
+  a previously-saved key.
+
+Note this scoping is per base URL, not per `ProviderPreset` case — two
+different custom endpoints are treated as two different "providers" for
+key/model storage purposes, which is the intended behavior (they're
+different services), but means renaming/retyping a custom base URL will
+appear to "lose" its key/model (they're still in storage under the old URL
+string, just not looked up anymore).
 
 ### Networking (`ChatService`)
 
@@ -189,10 +221,11 @@ truncation/summarization strategy in place yet.
 
 ## Known gaps / suggested next steps
 
-- **Test coverage**: `demo-appTests` is currently an empty stub. Priority
-  candidates for unit tests: `ChatService` SSE parsing (given canned byte
-  streams), `ChatSettings.detectedPreset` matching, and `KeychainStore`
-  round-trip save/read/delete.
+- **Test coverage**: `demo-appTests` now covers `ChatSettings`'
+  per-provider API key isolation, model-per-provider recall via
+  `applyPreset(_:)`, and legacy shared-key migration. Still missing:
+  `ChatService` SSE parsing (given canned byte streams) and `KeychainStore`
+  round-trip save/read/delete in isolation.
 - **Schema migration**: no `VersionedSchema`/`SchemaMigrationPlan` exists
   yet for `Conversation`/`Message`; add one before the first schema change
   ships to users with existing data.
@@ -202,7 +235,16 @@ truncation/summarization strategy in place yet.
   singleton, so switching provider/model from `ModelProviderPickerSheet`
   changes it for every conversation going forward, not just the one it was
   opened from. Persisting a per-`Conversation` provider/model override
-  would let different chats use different models simultaneously.
+  would let different chats use different models simultaneously. (Note:
+  as of the multi-provider key/model change, each *provider* does retain
+  its own last-used model — this gap is specifically about per-conversation
+  overrides, e.g. two open conversations using different models against the
+  same provider at once.)
+- **Custom base URL key/model "loss" on retyping**: keys and remembered
+  models for the `.custom` preset are scoped to the exact base URL string.
+  Editing a custom base URL (even fixing a typo) is indistinguishable from
+  switching to a new provider, so the previously-saved key/model for the
+  old string appears to disappear (it's still in storage, just orphaned).
 - **No reply branching**: retry/regenerate overwrite history in place
   (deleting the discarded messages) rather than keeping alternates. A
   tree-structured message model would be needed to support comparing

@@ -18,7 +18,10 @@ final class ChatSettings {
         didSet { defaults.set(baseURLString, forKey: Keys.baseURL) }
     }
     var modelName: String {
-        didSet { defaults.set(modelName, forKey: Keys.model) }
+        didSet {
+            defaults.set(modelName, forKey: Keys.model)
+            modelsByProvider[normalizedBaseURL(baseURLString)] = modelName
+        }
     }
     var systemPrompt: String {
         didSet { defaults.set(systemPrompt, forKey: Keys.systemPrompt) }
@@ -30,13 +33,34 @@ final class ChatSettings {
         didSet { defaults.set(theme.rawValue, forKey: Keys.theme) }
     }
 
+    /// Remembers the last model used with each base URL, so switching
+    /// providers and back doesn't lose a custom model choice. Keyed by the
+    /// normalized base URL (see `keychainAccount(for:)`), same scoping as
+    /// API keys.
+    private var modelsByProvider: [String: String] {
+        didSet { defaults.set(modelsByProvider, forKey: Keys.modelsByProvider) }
+    }
+
+    /// API key for the *currently active* provider (`baseURLString`).
+    /// Each provider's key is stored under its own Keychain account, so
+    /// setting a key for Anthropic does not overwrite or get overwritten by
+    /// OpenAI's key — see `keychainAccount(for:)`.
     var hasAPIKey: Bool {
-        guard let key = apiKey else { return false }
-        return !key.isEmpty
+        !(apiKey ?? "").isEmpty
     }
 
     var apiKey: String? {
-        KeychainStore.read(for: Keys.apiKey)
+        apiKey(forBaseURL: baseURLString)
+    }
+
+    /// Reads the stored key for an arbitrary base URL, independent of which
+    /// provider is currently active.
+    func apiKey(forBaseURL baseURL: String) -> String? {
+        KeychainStore.read(for: keychainAccount(for: baseURL))
+    }
+
+    func hasAPIKey(forBaseURL baseURL: String) -> Bool {
+        !(apiKey(forBaseURL: baseURL) ?? "").isEmpty
     }
 
     /// Best-effort detection of which preset the current base URL matches.
@@ -54,12 +78,22 @@ final class ChatSettings {
         static let model = "settings.model"
         static let systemPrompt = "settings.systemPrompt"
         static let temperature = "settings.temperature"
-        static let apiKey = "api-key"
         static let theme = "settings.theme"
+        static let modelsByProvider = "settings.modelsByProvider"
+        /// Pre-multi-provider single shared API key account. Migrated away
+        /// from on first launch after the per-provider key change; see
+        /// `migrateLegacyAPIKeyIfNeeded()`.
+        static let legacyAPIKey = "api-key"
     }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        // Initialize modelsByProvider before any property whose didSet
+        // touches it (modelName), so that observer is never operating on an
+        // uninitialized dictionary regardless of Swift's exact didSet-during-
+        // init timing.
+        self.modelsByProvider = defaults.dictionary(forKey: Keys.modelsByProvider) as? [String: String]
+            ?? [:]
         self.baseURLString = defaults.string(forKey: Keys.baseURL)
             ?? "https://api.openai.com/v1"
         self.modelName = defaults.string(forKey: Keys.model)
@@ -70,14 +104,61 @@ final class ChatSettings {
         self.temperature = storedTemp == 0 ? 0.7 : storedTemp
         self.theme = defaults.string(forKey: Keys.theme).flatMap(AppTheme.init(rawValue:))
             ?? .system
+        migrateLegacyAPIKeyIfNeeded()
     }
 
-    func setAPIKey(_ key: String?) throws {
-        if let key, !key.trimmingCharacters(in: .whitespaces).isEmpty {
-            try KeychainStore.save(key.trimmingCharacters(in: .whitespaces), for: Keys.apiKey)
-        } else {
-            KeychainStore.delete(for: Keys.apiKey)
+    /// One-time migration from the single shared API key (used before
+    /// providers had independently-scoped keys) to the currently active
+    /// provider's scoped account, so upgrading users don't lose their key.
+    /// A no-op on every launch after the first, since the legacy entry is
+    /// deleted once migrated.
+    private func migrateLegacyAPIKeyIfNeeded() {
+        guard let legacyKey = KeychainStore.read(for: Keys.legacyAPIKey) else { return }
+        let targetAccount = keychainAccount(for: baseURLString)
+        if KeychainStore.read(for: targetAccount) == nil {
+            try? KeychainStore.save(legacyKey, for: targetAccount)
         }
+        KeychainStore.delete(for: Keys.legacyAPIKey)
+    }
+
+    /// Keychain account name for a given base URL. Trailing slashes and
+    /// surrounding whitespace are trimmed so e.g. "https://api.x.com/v1" and
+    /// "https://api.x.com/v1/" map to the same stored key.
+    private func keychainAccount(for baseURL: String) -> String {
+        "api-key::\(normalizedBaseURL(baseURL))"
+    }
+
+    /// Saves (or deletes, if `key` is nil/blank) the API key for the
+    /// currently active provider (`baseURLString`). Other providers' keys
+    /// are unaffected.
+    func setAPIKey(_ key: String?) throws {
+        let account = keychainAccount(for: baseURLString)
+        if let key, !key.trimmingCharacters(in: .whitespaces).isEmpty {
+            try KeychainStore.save(key.trimmingCharacters(in: .whitespaces), for: account)
+        } else {
+            KeychainStore.delete(for: account)
+        }
+    }
+
+    /// Switches to `preset`: updates the base URL (unless it's `.custom`,
+    /// which keeps whatever URL is currently set), then restores whichever
+    /// model was last used with that base URL, falling back to the preset's
+    /// default model.
+    func applyPreset(_ preset: ProviderPreset) {
+        if !preset.defaultBaseURL.isEmpty {
+            baseURLString = preset.defaultBaseURL
+        }
+        if let remembered = modelsByProvider[normalizedBaseURL(baseURLString)] {
+            modelName = remembered
+        } else if !preset.defaultModel.isEmpty {
+            modelName = preset.defaultModel
+        }
+    }
+
+    private func normalizedBaseURL(_ baseURL: String) -> String {
+        var normalized = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while normalized.hasSuffix("/") { normalized.removeLast() }
+        return normalized
     }
 }
 

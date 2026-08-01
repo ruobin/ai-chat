@@ -52,6 +52,9 @@ struct SettingsView: View {
                     apiKeyInput = existing
                 }
             }
+            .onChange(of: settings.baseURLString) { _, _ in
+                loadAPIKeyForActiveProvider()
+            }
         }
     }
 
@@ -83,9 +86,9 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
             }
         } header: {
-            Text("BYOK — API Key")
+            Text("BYOK — API Key for \(settings.detectedPreset.label)")
         } footer: {
-            Text("Stored securely in the iOS Keychain. Optional for local providers like Ollama. The key is sent only as the Authorization header on requests to your chosen provider.")
+            Text("Stored securely in the iOS Keychain, scoped to this provider's endpoint — each provider keeps its own key, so switching providers won't overwrite or reuse another provider's key. Optional for local providers like Ollama. The key is sent only as the Authorization header on requests to your chosen provider.")
                 .font(.footnote)
         }
     }
@@ -98,12 +101,7 @@ struct SettingsView: View {
                 }
             }
             .onChange(of: preset) { _, new in
-                if !new.defaultBaseURL.isEmpty {
-                    settings.baseURLString = new.defaultBaseURL
-                }
-                if !new.defaultModel.isEmpty {
-                    settings.modelName = new.defaultModel
-                }
+                settings.applyPreset(new)
             }
             TextField("Base URL", text: $settings.baseURLString)
                 .autocorrectionDisabled()
@@ -286,5 +284,13 @@ struct SettingsView: View {
         } catch {
             saveError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    /// Reloads the key field to reflect whichever provider is now active,
+    /// since each provider's key is stored independently. Called whenever
+    /// the base URL changes (preset switch or manual edit).
+    private func loadAPIKeyForActiveProvider() {
+        apiKeyInput = settings.apiKey ?? ""
+        saveError = nil
     }
 }

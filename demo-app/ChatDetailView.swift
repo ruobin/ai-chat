@@ -397,12 +397,7 @@ private struct ModelProviderPickerSheet: View {
                         }
                     }
                     .onChange(of: preset) { _, new in
-                        if !new.defaultBaseURL.isEmpty {
-                            settings.baseURLString = new.defaultBaseURL
-                        }
-                        if !new.defaultModel.isEmpty {
-                            settings.modelName = new.defaultModel
-                        }
+                        settings.applyPreset(new)
                         availableModels = []
                         fetchModelsError = nil
                     }
@@ -413,7 +408,7 @@ private struct ModelProviderPickerSheet: View {
                             .keyboardType(.URL)
                     }
                     if !settings.hasAPIKey && !preset.allowsEmptyKey {
-                        Label("No API key set for this provider. Open full Settings to add one.", systemImage: "exclamationmark.triangle")
+                        Label("No API key set for \(preset.label). Open full Settings to add one.", systemImage: "exclamationmark.triangle")
                             .font(.footnote)
                             .foregroundStyle(.orange)
                     }
