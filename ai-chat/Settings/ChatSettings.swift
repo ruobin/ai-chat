@@ -92,10 +92,22 @@ final class ChatSettings {
         // init timing.
         self.modelsByProvider = defaults.dictionary(forKey: Keys.modelsByProvider) as? [String: String]
             ?? [:]
-        self.baseURLString = defaults.string(forKey: Keys.baseURL)
-            ?? "https://api.openai.com/v1"
+        // On a fresh install, prefer the on-device model when the device
+        // supports it: it needs no API key, so the app is usable immediately
+        // rather than dead-ending on "No API key set". That matters for App
+        // Review, whose testers have no keys, and it's the better default for
+        // any new user too. A stored value always wins, so this never
+        // overrides a choice someone has already made.
+        let storedBaseURL = defaults.string(forKey: Keys.baseURL)
+        let preferOnDevice = storedBaseURL == nil && AppleIntelligenceService.isAvailable
+        self.baseURLString = storedBaseURL
+            ?? (preferOnDevice
+                ? ProviderPreset.appleIntelligence.defaultBaseURL
+                : "https://api.openai.com/v1")
         self.modelName = defaults.string(forKey: Keys.model)
-            ?? "gpt-4o-mini"
+            ?? (preferOnDevice
+                ? ProviderPreset.appleIntelligence.defaultModel
+                : "gpt-4o-mini")
         self.systemPrompt = defaults.string(forKey: Keys.systemPrompt)
             ?? "You are a helpful assistant."
         // Use object(forKey:) rather than double(forKey:) so an explicitly

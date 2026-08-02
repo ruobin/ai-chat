@@ -154,14 +154,16 @@ struct ChatDetailView: View {
                             .padding(.top, 80)
                     }
                     ForEach(sorted) { message in
-                        MessageBubble(
-                            message: message,
-                            isStreaming: isStreaming,
-                            isLastMessage: message.id == sorted.last?.id,
-                            sources: message.citedWebSources,
-                            onRetry: { regenerate(from: message, inclusive: false) },
-                            onRegenerate: { regenerate(from: message, inclusive: true) }
-                        )
+                    MessageBubble(
+                        message: message,
+                        isStreaming: isStreaming,
+                        isLastMessage: message.id == sorted.last?.id,
+                        sources: message.citedWebSources,
+                        providerLabel: ProviderPreset
+                            .detect(from: conversation.effectiveBaseURL).label,
+                        onRetry: { regenerate(from: message, inclusive: false) },
+                        onRegenerate: { regenerate(from: message, inclusive: true) }
+                    )
                         .id(message.id)
                     }
                     if isStreaming {
@@ -564,6 +566,7 @@ struct MessageBubble: View {
     var isStreaming: Bool = false
     var isLastMessage: Bool = false
     var sources: [PersistedWebSource] = []
+    var providerLabel: String = ""
     var onRetry: (() -> Void)? = nil
     var onRegenerate: (() -> Void)? = nil
 
@@ -581,6 +584,13 @@ struct MessageBubble: View {
                     .background(bubbleBackground)
                     .foregroundStyle(bubbleForeground)
                     .clipShape(BubbleShape(role: message.role))
+                    // Without this VoiceOver reads an alternating transcript
+                    // with no indication of who said what.
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(
+                        "\(message.role == .user ? "You said" : "Assistant said"): "
+                        + message.content
+                    )
                     .contextMenu {
                         Button {
                             UIPasteboard.general.string = message.content
@@ -599,6 +609,20 @@ struct MessageBubble: View {
                                 onRegenerate()
                             } label: {
                                 Label("Regenerate", systemImage: "arrow.clockwise")
+                            }
+                        }
+                        // Reporting path required for chatbot content by
+                        // App Review Guideline 4.7.1. Hidden until
+                        // SupportInfo carries a real address, so we never
+                        // ship a dead mailto: link.
+                        if message.role == .assistant,
+                           let reportURL = SupportInfo.reportURL(
+                               for: message.content,
+                               provider: providerLabel
+                           ) {
+                            Divider()
+                            Link(destination: reportURL) {
+                                Label("Report response", systemImage: "exclamationmark.bubble")
                             }
                         }
                     }
@@ -933,6 +957,7 @@ private struct ChatInputBar: View {
                     Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
                         .font(.system(size: 32))
                 }
+                .accessibilityLabel(isStreaming ? "Stop generating" : "Send message")
                 // While streaming the button is the stop action and must stay
                 // enabled; it only disables while voice input is active or for
                 // empty input when sending.

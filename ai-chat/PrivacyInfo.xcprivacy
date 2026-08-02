@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  The app has no developer-operated backend: nothing is collected by us,
+	  and nothing is transmitted anywhere except to the AI provider the user
+	  chooses and (only when the user explicitly arms web search) to Brave.
+	  Those are user-directed transmissions, not developer data collection,
+	  so NSPrivacyCollectedDataTypes is empty. There are no third-party SDKs,
+	  no analytics, and no advertising, so tracking is false and there are no
+	  tracking domains.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!--
+			  UserDefaults stores this app's own settings only (provider,
+			  model, system prompt, temperature, theme, and the web-search
+			  disclosure flag). CA92.1 covers accessing information from the
+			  same app. No API keys are kept here; those live in the Keychain.
+			-->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
