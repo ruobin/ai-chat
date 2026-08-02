@@ -169,6 +169,8 @@ struct ChatDetailView: View {
                             .id("streaming")
                     }
                 }
+                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
             }
@@ -508,8 +510,13 @@ private struct StreamingBubble: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 6) {
-                Text(content.isEmpty ? " " : content)
-                    .textSelection(.enabled)
+                if content.isEmpty {
+                    Text(" ")
+                } else {
+                    // Same renderer as the committed message, so formatting
+                    // doesn't visibly re-flow when the stream lands.
+                    MessageContentView(content: content, role: .assistant)
+                }
                 if isSearchingWeb {
                     Label("Searching the web…", systemImage: "magnifyingglass")
                         .font(.caption)
@@ -559,8 +566,11 @@ struct MessageBubble: View {
         VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
             HStack {
                 if message.role == .user { Spacer(minLength: 40) }
-                Text(message.content)
-                    .textSelection(.enabled)
+                MessageContentView(
+                    content: message.content,
+                    role: message.role,
+                    citations: citationMap
+                )
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(bubbleBackground)
@@ -621,6 +631,14 @@ struct MessageBubble: View {
         case .user: return .white
         default: return .primary
         }
+    }
+
+    /// ID → URL for the sources this app actually retrieved, used to turn
+    /// `[source:N]` markers into real links. Built from `sources` rather than
+    /// from anything in the reply text, so a model that invents a citation
+    /// number gets literal text instead of a working link.
+    private var citationMap: [Int: URL] {
+        Dictionary(sources.map { ($0.id, $0.url) }, uniquingKeysWith: { first, _ in first })
     }
 }
 
