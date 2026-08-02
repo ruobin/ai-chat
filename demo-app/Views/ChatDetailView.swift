@@ -306,8 +306,11 @@ struct ChatDetailView: View {
         streamTask?.cancel()
     }
 
+    /// Arms or disarms one-shot web search for the next message. Voice input
+    /// is deliberately not consulted: this only sets a flag consumed at send
+    /// time, so toggling it mid-dictation is harmless.
     private func toggleWebSearch() {
-        guard !isStreaming, !voiceInput.state.isActive, !isSearchingWeb else { return }
+        guard !isStreaming, !isSearchingWeb else { return }
         if webSearchEnabled {
             webSearchEnabled = false
         } else if !webSearchSettings.hasKey {
@@ -319,8 +322,10 @@ struct ChatDetailView: View {
         }
     }
 
+    /// Starts dictation. Armed web search is irrelevant here — it only
+    /// affects how the message is answered once sent, not how it's composed.
     private func startVoiceInput() {
-        guard !isStreaming, !voiceInput.state.isActive, !webSearchEnabled else { return }
+        guard !isStreaming, !voiceInput.state.isActive else { return }
         voiceBaseDraft = inputText
         errorMessage = nil
         let identifier = beginVoiceAction()
@@ -917,7 +922,10 @@ private struct ChatInputBar: View {
                             if isSearchingWeb { ProgressView().controlSize(.small) }
                         }
                 }
-                .disabled(isStreaming || voiceState.blocksSending || isSearchingWeb)
+                // Arming web search is independent of dictation: it only
+                // marks how the next message gets answered, so it stays
+                // available while the mic is live.
+                .disabled(isStreaming || isSearchingWeb)
                 .accessibilityLabel("Search the web for this message")
                 .accessibilityValue(webSearchEnabled ? "On" : "Off")
 
@@ -965,7 +973,7 @@ private struct ChatInputBar: View {
                 Image(systemName: "mic.circle.fill")
                     .font(.system(size: 32))
             }
-            .disabled(isStreaming || voiceState.permanentlyUnavailable || webSearchEnabled)
+            .disabled(isStreaming || voiceState.permanentlyUnavailable)
             .accessibilityLabel("Start voice input")
             .accessibilityHint(voiceState.statusMessage ?? "Transcribes speech on this device")
         }
