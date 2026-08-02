@@ -278,15 +278,66 @@ again.
   stop button while streaming. The navigation-bar title area shows this
   conversation's active provider/model and is tappable to open
   `ModelProviderPickerSheet` — a scoped version of the provider/model
-  pickers from `SettingsView`, but editing the conversation's own override
-  (see "Per-conversation provider/model" above) rather than the global
-  default. For the on-device preset the sheet hides the model controls and
-  shows the device's Apple Intelligence availability instead.
+   pickers from `SettingsView`, but editing the conversation's own override
+   (see "Per-conversation provider/model" above) rather than the global
+   default. For the on-device preset the sheet hides the model controls and
+   shows the device's Apple Intelligence availability instead. It also owns a
+   `VoiceInputSession` for live on-device dictation. The view snapshots the
+   typed draft before recording, combines it with partial/final transcripts,
+   restores it on cancellation, and prevents sending or response streaming
+   while voice input is active.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
   API key save/remove flow, a "Fetch available models" action that
   calls `ChatService.fetchModels()` and surfaces the result as a picker,
-  and an appearance section for choosing the app theme.
+   and an appearance section for choosing the app theme.
+
+### On-device voice input (`VoiceInputSession`)
+
+`VoiceInputSession` is the chat composer's seam over Apple's Speech and
+AVFAudio frameworks. Its small observable interface exposes `state`, the
+current utterance `transcript`, and `start()` / `finish()` / `cancel()`.
+Internally it owns the complete microphone lifecycle:
+
+- Requests microphone permission and resolves a locale equivalent to the
+  device's current locale through `SpeechTranscriber` runtime checks.
+- Uses `AssetInventory` to install and reserve the Apple-managed locale model,
+  publishing download progress through the preparation state. The model may
+  need a network download, but recognition runs entirely on device.
+- Configures `AVAudioSession` / `AVAudioEngine`, converts microphone buffers to
+  the exact format required by `SpeechAnalyzer`, and streams `AnalyzerInput`
+  values into the analyzer.
+- Replaces volatile hypotheses while appending final results exactly once, so
+  the composer gets low-latency text without duplicated words.
+- Gracefully finalizes on the user's stop action to preserve trailing words.
+  Cancellation, setup failure, interruption, route loss, scene deactivation,
+  conversation changes, and view disappearance all share idempotent cleanup of
+  the tap, engine, analyzer, tasks, and audio session.
+
+The audio itself is never persisted, logged, attached to SwiftData, or sent to
+a provider. After transcription, the editable text follows the normal send
+path: cloud providers receive it only when the user taps Send, while the Apple
+Intelligence provider keeps the complete flow local.
+
+### Web search (`WebResearchService`)
+
+`WebResearchService` adds optional, one-turn web grounding without changing the
+selected model provider's request protocol. When the composer globe control is
+enabled, the current user message is sent to Brave Search's LLM Context endpoint
+using a user-owned key stored by `WebSearchSettings` in Keychain. The service
+limits the query, request budget, snippets, prompt context, and source count;
+rejects unsafe source URLs; and returns temporary untrusted evidence plus an
+app-owned source allowlist.
+
+`ChatDetailView` runs retrieval and generation under the same cancellable task.
+It appends the evidence only to the transient trailing provider message along
+with an instruction to cite `[source:N]`; it never stores raw excerpts in chat
+history. On success or partial cancellation, the assistant `Message` stores a
+small JSON source payload (ID, title, HTTPS URL, domain), which renders as a
+trusted Sources row. Search-stage failures remain transient errors instead of
+creating an ungrounded answer. This works identically with Apple Intelligence,
+HTTP providers, Ollama, and custom OpenAI-compatible endpoints because every
+generation path receives ordinary text messages after retrieval.
 
 ### Appearance (`AppTheme`)
 
@@ -346,6 +397,33 @@ fresh `LanguageModelSession` each call. Token costs grow with conversation
 length for HTTP providers, and the on-device model hard-fails past its
 ~4k-token context window. There is no truncation/summarization strategy in
 place yet.
+
+## Data flow: dictating a message
+
+1. The user taps the microphone in `ChatInputBar`; `ChatDetailView` snapshots
+   the current typed draft and calls `VoiceInputSession.start()`.
+2. The session requests permission, resolves/installs the current locale's
+   model, activates the microphone, and starts `SpeechAnalyzer` with a
+   `SpeechTranscriber` module.
+3. Partial and final results update `VoiceInputSession.transcript`; the view
+   combines that utterance with the original typed draft in the composer.
+4. The user taps the red stop button. The session stops capture, finishes its
+   input stream, finalizes through the end of audio, then releases resources.
+5. Final text remains an editable draft. Nothing is persisted or transmitted
+   until the existing Send action creates a user `Message`.
+
+## Data flow: web-grounded message
+
+1. The user enables the composer globe control and taps Send. The resulting
+   user `Message` is marked as having requested web search, then the control
+   resets.
+2. `ChatDetailView` asks `WebResearchService` for bounded Brave LLM Context
+   evidence using the current user message only.
+3. The temporary evidence block and source-ID instruction are appended to the
+   trailing provider message, then the normal Apple Intelligence or HTTP stream
+   begins.
+4. On completion or partial cancellation, the assistant message persists only
+   source metadata. The UI renders those allowlisted links below its response.
 
 ## Known gaps / suggested next steps
 

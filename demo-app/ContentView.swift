@@ -90,6 +90,7 @@ struct ContentView: View {
     private var detail: some View {
         if let conversation = selection {
             ChatDetailView(conversation: conversation)
+                .id(conversation.id)
         } else {
             ContentUnavailableView {
                 Label("Pick or start a chat", systemImage: "bubble.left")

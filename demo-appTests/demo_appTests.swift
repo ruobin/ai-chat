@@ -21,6 +21,161 @@ struct demo_appTests {
 
 }
 
+@Suite struct VoiceDraftComposerTests {
+    @Test func usesUtteranceForEmptyDraft() {
+        #expect(VoiceDraftComposer.combine(base: "", utterance: "Hello") == "Hello")
+    }
+
+    @Test func preservesEmptyUtteranceDraft() {
+        #expect(VoiceDraftComposer.combine(base: "Already typed", utterance: "") == "Already typed")
+    }
+
+    @Test func insertsSpaceBetweenTypedAndSpokenText() {
+        #expect(
+            VoiceDraftComposer.combine(base: "Already typed", utterance: "more words")
+                == "Already typed more words"
+        )
+    }
+
+    @Test func doesNotDuplicateExistingWhitespace() {
+        #expect(
+            VoiceDraftComposer.combine(base: "Already typed ", utterance: "more words")
+                == "Already typed more words"
+        )
+        #expect(
+            VoiceDraftComposer.combine(base: "Already typed", utterance: " more words")
+                == "Already typed more words"
+        )
+    }
+}
+
+@Suite struct VoiceTranscriptAccumulatorTests {
+    @Test func volatileHypothesesReplaceRatherThanAppend() {
+        var accumulator = VoiceTranscriptAccumulator()
+
+        accumulator.apply("Hello", isFinal: false)
+        #expect(accumulator.transcript == "Hello")
+
+        accumulator.apply("Hello world", isFinal: false)
+        #expect(accumulator.transcript == "Hello world")
+    }
+
+    @Test func finalResultsAppendExactlyOnce() {
+        var accumulator = VoiceTranscriptAccumulator()
+
+        accumulator.apply("Hello world", isFinal: false)
+        accumulator.apply("Hello world", isFinal: true)
+        #expect(accumulator.transcript == "Hello world")
+
+        accumulator.apply("from voice input", isFinal: true)
+        #expect(accumulator.transcript == "Hello world from voice input")
+    }
+
+    @Test func resetClearsFinalAndVolatileText() {
+        var accumulator = VoiceTranscriptAccumulator()
+        accumulator.apply("Final", isFinal: true)
+        accumulator.apply("partial", isFinal: false)
+
+        accumulator.reset()
+
+        #expect(accumulator.transcript.isEmpty)
+    }
+}
+
+@Suite struct VoiceInputStateTests {
+    @Test func onlyInFlightStatesBlockEditingAndSending() {
+        let activeStates: [VoiceInputState] = [
+            .preparing(.requestingPermission),
+            .recording,
+            .finalizing,
+        ]
+        let inactiveStates: [VoiceInputState] = [
+            .idle,
+            .failed("Retry"),
+            .unavailable("Unsupported"),
+        ]
+
+        for state in activeStates {
+            #expect(state.isActive)
+            #expect(state.blocksEditing)
+            #expect(state.blocksSending)
+        }
+        for state in inactiveStates {
+            #expect(!state.isActive)
+            #expect(!state.blocksEditing)
+            #expect(!state.blocksSending)
+        }
+    }
+
+    @Test func unavailableIsTheOnlyPermanentlyDisabledState() {
+        #expect(VoiceInputState.unavailable("Unsupported").permanentlyUnavailable)
+        #expect(!VoiceInputState.failed("Retry").permanentlyUnavailable)
+        #expect(!VoiceInputState.idle.permanentlyUnavailable)
+    }
+
+    @Test func permanentCapabilityErrorsAreClassifiedSeparately() {
+        #expect(VoiceInputError.transcriberUnavailable.isPermanent)
+        #expect(VoiceInputError.unsupportedLocale.isPermanent)
+        #expect(VoiceInputError.unsupportedModel.isPermanent)
+        #expect(VoiceInputError.modelReservationUnavailable.isPermanent)
+        #expect(!VoiceInputError.microphoneDenied.isPermanent)
+        #expect(!VoiceInputError.interrupted.isPermanent)
+    }
+}
+
+@Suite struct WebResearchTests {
+    @Test func normalizesAndBoundsQuery() throws {
+        let query = try WebResearchService.normalizedQuery("  What\n\n is\tnew?  ")
+        #expect(query == "What is new?")
+
+        let longQuery = try WebResearchService.normalizedQuery(
+            String(repeating: "word ", count: 75)
+        )
+        #expect(longQuery.split(separator: " ").count == 50)
+    }
+
+    @Test func rejectsAnEmptyNormalizedQuery() {
+        #expect(throws: WebResearchError.self) {
+            _ = try WebResearchService.normalizedQuery(" \n\t ")
+        }
+    }
+
+    @Test func excludesFencedCodeFromQuery() throws {
+        let query = try WebResearchService.normalizedQuery(
+            "Summarize this ```secret-token-should-not-leave-device``` document"
+        )
+        #expect(query == "Summarize this document")
+    }
+
+    @Test func sourcePayloadExcludesRawExcerpt() {
+        let source = PersistedWebSource(
+            id: 1,
+            title: "Example",
+            url: URL(string: "https://example.com")!,
+            domain: "example.com"
+        )
+        let message = Message(role: .assistant, content: "Answer")
+        message.setWebSources([source])
+
+        #expect(message.webSources.map(\.id) == [source.id])
+        let encoded = String(data: message.webSourcesData!, encoding: .utf8)!
+        #expect(!encoded.contains("excerpt"))
+    }
+
+    @Test func filtersSourcesToKnownCitationMarkers() {
+        let first = PersistedWebSource(
+            id: 1, title: "One", url: URL(string: "https://one.example")!, domain: "one.example"
+        )
+        let second = PersistedWebSource(
+            id: 2, title: "Two", url: URL(string: "https://two.example")!, domain: "two.example"
+        )
+        let message = Message(role: .assistant, content: "Claim [source:2] and [source:99].")
+        message.setWebSources([first, second])
+
+        #expect(message.citedWebSources.map(\.id) == [2])
+    }
+}
+
 /// Covers `ChatSettings`' temperature persistence. Regression test: an
 /// explicitly-saved 0.0 must survive a relaunch (previously indistinguishable
 /// from "never set" via `UserDefaults.double(forKey:)`, and reset to 0.7).

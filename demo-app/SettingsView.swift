@@ -6,6 +6,11 @@
 import SwiftUI
 
 struct SettingsView: View {
+    enum InitialSection {
+        case general
+        case webSearch
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     @State private var settings = ChatSettings.shared
@@ -17,10 +22,15 @@ struct SettingsView: View {
     @State private var availableModels: [ProviderModel] = []
     @State private var isFetchingModels: Bool = false
     @State private var fetchModelsError: String?
+    @State private var webSearchKeyInput: String = ""
+    @State private var webSearchKeyError: String?
 
     private let service = ChatService()
+    private let webSearchSettings = WebSearchSettings.shared
+    private let initialSection: InitialSection
 
-    init() {
+    init(initialSection: InitialSection = .general) {
+        self.initialSection = initialSection
         let s = ChatSettings.shared
         _preset = State(initialValue: ProviderPreset.detect(from: s.baseURLString))
         _apiKeyInput = State(initialValue: "")
@@ -36,6 +46,7 @@ struct SettingsView: View {
                 modelSection
                 systemPromptSection
                 temperatureSection
+                webSearchSection
                 appearanceSection
                 aboutSection
             }
@@ -49,6 +60,9 @@ struct SettingsView: View {
             .onAppear {
                 if apiKeyInput.isEmpty, let existing = settings.apiKey {
                     apiKeyInput = existing
+                }
+                if webSearchKeyInput.isEmpty {
+                    webSearchKeyInput = webSearchSettings.key() ?? ""
                 }
             }
             .onChange(of: settings.baseURLString) { _, _ in
@@ -274,6 +288,42 @@ struct SettingsView: View {
         }
     }
 
+    private var webSearchSection: some View {
+        Section {
+            SecureField("Brave Search API key", text: $webSearchKeyInput)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            Button {
+                saveWebSearchKey()
+            } label: {
+                Label("Save Brave Search key", systemImage: "key.fill")
+            }
+            .disabled(webSearchKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            if webSearchSettings.hasKey {
+                Button(role: .destructive) {
+                    webSearchKeyInput = ""
+                    try? webSearchSettings.setKey(nil)
+                } label: {
+                    Label("Remove Brave Search key", systemImage: "trash")
+                }
+            }
+            if let webSearchKeyError {
+                Text(webSearchKeyError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+            Link("Get a Brave Search API key", destination: URL(string: "https://api.search.brave.com/")!)
+            Link("Brave Search privacy notice", destination: URL(string: "https://api-dashboard.search.brave.com/documentation/resources/privacy-notice")!)
+        } header: {
+            Text("Web Search")
+        } footer: {
+            Text("When enabled per message, the current message is sent to Brave Search. Brave documents query retention of up to 90 days. Search results are untrusted; LLM Context has no documented safe-search control.")
+                .font(.footnote)
+        }
+        .id(initialSection == .webSearch ? "web-search" : "web-search-general")
+    }
+
     private var aboutSection: some View {
         Section {
             LabeledContent("Provider") {
@@ -314,6 +364,15 @@ struct SettingsView: View {
             showSaved = true
         } catch {
             saveError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func saveWebSearchKey() {
+        do {
+            try webSearchSettings.setKey(webSearchKeyInput)
+            webSearchKeyError = nil
+        } catch {
+            webSearchKeyError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 

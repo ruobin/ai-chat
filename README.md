@@ -16,6 +16,12 @@ throughout this repo and its tooling (see below).
 - **Apple Intelligence on-device provider** — chat with the built-in
   ~3B-parameter local model via the Foundation Models framework. No API key,
   no network, fully private. Requires an Apple Intelligence–capable device
+- **On-device voice input** — dictate an editable message draft from the chat
+  composer via Apple's Speech framework. Live audio is transcribed locally and
+  is never saved or uploaded
+- **Web search for every model** — enable Brave Search for one message to ground
+  Apple Intelligence, cloud, Ollama, or custom-model answers with clickable
+  source links. Requires your own Brave Search API key
 - Streaming responses via Server-Sent Events (`/chat/completions` with
   `stream: true`), with a stop button that keeps the partial reply
 - Presets for OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek,
@@ -37,6 +43,9 @@ throughout this repo and its tooling (see below).
 - The Apple Intelligence provider additionally requires a device that
   supports Apple Intelligence, with Apple Intelligence enabled and the
   on-device model downloaded. All other providers work on any device.
+- Voice input requires a device and current language supported by Apple's
+  `SpeechTranscriber`. First use may download an Apple-managed language model;
+  test recognition on a physical device rather than relying on Simulator.
 
 ## Getting started
 
@@ -60,6 +69,9 @@ demo-app/
   SettingsView.swift      Provider/model/API key/system prompt/temperature UI
   ChatService.swift       OpenAI-compatible streaming HTTP client
   AppleIntelligenceService.swift  On-device model via Foundation Models
+  VoiceInputSession.swift  Live on-device speech capture and transcription
+  WebResearchService.swift  Brave retrieval, evidence limits, source validation
+  WebSearchSettings.swift  Brave key and disclosure preference storage
   ChatSettings.swift      Observable settings store + provider presets
   Conversation.swift      SwiftData model (incl. per-conversation provider)
   Message.swift           SwiftData model
@@ -97,5 +109,13 @@ Intelligence preset (sentinel detection, transcript construction), and
 - The Apple Intelligence provider never touches the network or a key —
   prompts and responses stay on the device (subject to Apple's own
   on-device processing guarantees).
+- Voice recordings stay in memory and are transcribed on device. Only the
+  resulting editable text follows the selected provider's normal behavior when
+  you tap Send; cloud providers receive that text, while Apple Intelligence
+  keeps it local.
+- Web search sends only the current enabled message to Brave Search. The
+  resulting evidence is included in a cloud provider's request, or used locally
+  with Apple Intelligence. Raw excerpts are not stored; saved assistant
+  messages retain only source title, domain, and URL metadata.
 - Local/custom providers (Ollama, custom endpoints) are allowed to run with
   no key at all.
