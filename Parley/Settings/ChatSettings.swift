@@ -148,7 +148,14 @@ final class ChatSettings {
     /// currently active provider (`baseURLString`). Other providers' keys
     /// are unaffected.
     func setAPIKey(_ key: String?) throws {
-        let account = keychainAccount(for: baseURLString)
+        try setAPIKey(key, forBaseURL: baseURLString)
+    }
+
+    /// Saves (or deletes, if `key` is nil/blank) the API key for an
+    /// arbitrary base URL, independent of which provider is currently
+    /// active — used by the per-conversation Model & Provider sheet.
+    func setAPIKey(_ key: String?, forBaseURL baseURL: String) throws {
+        let account = keychainAccount(for: baseURL)
         if let key, !key.trimmingCharacters(in: .whitespaces).isEmpty {
             try KeychainStore.save(key.trimmingCharacters(in: .whitespaces), for: account)
         } else {

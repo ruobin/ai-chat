@@ -733,6 +733,9 @@ private struct ModelProviderPickerSheet: View {
     @State private var isFetchingModels: Bool = false
     @State private var fetchModelsError: String?
 
+    @State private var apiKeyInput: String
+    @State private var keySaveError: String?
+
     private let service = ChatService()
 
     init(conversation: Conversation) {
@@ -741,6 +744,7 @@ private struct ModelProviderPickerSheet: View {
         _baseURL = State(initialValue: url)
         _modelName = State(initialValue: conversation.effectiveModelName)
         _preset = State(initialValue: ProviderPreset.detect(from: url))
+        _apiKeyInput = State(initialValue: ChatSettings.shared.apiKey(forBaseURL: url) ?? "")
     }
 
     private var hasAPIKey: Bool {
@@ -763,6 +767,7 @@ private struct ModelProviderPickerSheet: View {
                         modelName = settings.rememberedModel(forBaseURL: baseURL) ?? new.defaultModel
                         availableModels = []
                         fetchModelsError = nil
+                        reloadStoredKey()
                         applyChanges()
                     }
                     if preset == .custom {
@@ -771,14 +776,19 @@ private struct ModelProviderPickerSheet: View {
                             .textInputAutocapitalization(.never)
                             .keyboardType(.URL)
                             .onChange(of: baseURL) { _, _ in
+                                reloadStoredKey()
                                 applyChanges()
                             }
                     }
                     if !hasAPIKey && !preset.allowsEmptyKey {
-                        Label("No API key set for \(preset.label). Open full Settings to add one.", systemImage: "exclamationmark.triangle")
+                        Label("No API key set for \(preset.label). Add one below.", systemImage: "exclamationmark.triangle")
                             .font(.footnote)
                             .foregroundStyle(.orange)
                     }
+                }
+
+                if !preset.isOnDevice {
+                    apiKeySection
                 }
 
                 Section {
@@ -871,6 +881,58 @@ private struct ModelProviderPickerSheet: View {
                 }
             }
         }
+    }
+
+    private var apiKeySection: some View {
+        Section {
+            SecureField("API key", text: $apiKeyInput)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .submitLabel(.done)
+            Button {
+                saveAPIKey()
+            } label: {
+                Label("Save API key", systemImage: "key.fill")
+            }
+            .disabled(apiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+            if hasAPIKey {
+                Button(role: .destructive) {
+                    apiKeyInput = ""
+                    keySaveError = nil
+                    try? settings.setAPIKey(nil, forBaseURL: baseURL)
+                } label: {
+                    Label("Remove saved key", systemImage: "trash")
+                }
+            }
+            if let keySaveError {
+                Text(keySaveError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("API Key for \(preset.label)")
+        } footer: {
+            Text("Shared with Settings and every conversation using this provider — stored securely in the iOS Keychain, scoped to this provider's endpoint. Optional for local providers like Ollama.")
+                .font(.footnote)
+        }
+    }
+
+    private func saveAPIKey() {
+        do {
+            try settings.setAPIKey(apiKeyInput, forBaseURL: baseURL)
+            keySaveError = nil
+        } catch {
+            keySaveError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    /// The key field always shows the stored key for the provider being
+    /// edited, so switching presets (or retyping a custom URL) never saves
+    /// one provider's key under another provider's account.
+    private func reloadStoredKey() {
+        apiKeyInput = settings.apiKey(forBaseURL: baseURL) ?? ""
+        keySaveError = nil
     }
 
     /// Persists the current `baseURL`/`modelName` onto `conversation`, and
