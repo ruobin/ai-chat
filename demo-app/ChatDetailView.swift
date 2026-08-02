@@ -241,7 +241,8 @@ struct ChatDetailView: View {
                     // Apple Intelligence: generate locally via Foundation
                     // Models — no HTTP, no key.
                     try await appleService.streamCompletion(
-                        messages: providerMessages
+                        messages: providerMessages,
+                        usedWebSearch: research != nil
                     ) { token in
                         streamBuffer.append(token)
                     }
@@ -275,7 +276,19 @@ struct ChatDetailView: View {
                     let description = (error as? LocalizedError)?.errorDescription
                         ?? error.localizedDescription
                     errorMessage = description
-                    persistAssistant(content: "⚠️ " + description, research: research)
+                    // Only bake the failure into the transcript when part of
+                    // a reply actually streamed, so the stub explains the
+                    // truncation. A failure with nothing streamed (a
+                    // guardrail block, say) stays a transient alert —
+                    // otherwise it would be replayed as assistant history on
+                    // every later turn, and the user's message would look
+                    // like the thing that was judged unsafe.
+                    if !streamBuffer.content.isEmpty {
+                        persistAssistant(
+                            content: streamBuffer.content + "\n\n⚠️ " + description,
+                            research: research
+                        )
+                    }
                 }
             }
             isStreaming = false

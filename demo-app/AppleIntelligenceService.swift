@@ -19,6 +19,13 @@ enum AppleIntelligenceError: LocalizedError {
     case unavailable(String)
     case noUserMessage
     case contextTooLong
+    /// Apple's safety guardrail rejected the prompt or the response. The
+    /// associated flag records whether web evidence was in the prompt: with
+    /// search on, most of the prompt is third-party page text, and that is
+    /// usually what tripped the filter rather than anything the user typed.
+    case safetyBlocked(usedWebSearch: Bool)
+    case unsupportedLanguage
+    case busy
 
     var errorDescription: String? {
         switch self {
@@ -30,6 +37,23 @@ enum AppleIntelligenceError: LocalizedError {
             return "This conversation is too long for the on-device model's "
                 + "context window. Start a new chat, or switch this "
                 + "conversation to a cloud provider."
+        case .safetyBlocked(let usedWebSearch):
+            if usedWebSearch {
+                return "Apple Intelligence blocked this response after "
+                    + "reading the web results. On-device safety filters "
+                    + "screen the search snippets too, so an unrelated page "
+                    + "can trigger this. Try again without web search, "
+                    + "reword the search, or switch to a cloud provider."
+            }
+            return "Apple Intelligence declined to answer this one. Its "
+                + "on-device safety filters are stricter than the cloud "
+                + "providers'. Try rewording, or switch this conversation "
+                + "to a cloud provider."
+        case .unsupportedLanguage:
+            return "Apple Intelligence doesn't support this language yet. "
+                + "Switch this conversation to a cloud provider."
+        case .busy:
+            return "Apple Intelligence is busy. Try again in a moment."
         }
     }
 }
@@ -97,8 +121,13 @@ struct AppleIntelligenceService {
     /// `ChatService.streamCompletion`: `messages` is the full chat history
     /// (system prompt first, ending with the latest user message) and
     /// `onToken` is called on the main actor with incremental deltas.
+    ///
+    /// `usedWebSearch` only shapes the error text when a guardrail fires —
+    /// Apple screens the whole prompt, so retrieved page content is a far
+    /// likelier trigger than the user's own question.
     func streamCompletion(
         messages: [ProviderChatMessage],
+        usedWebSearch: Bool = false,
         onToken: @MainActor (String) -> Void
     ) async throws {
         guard Self.isAvailable else {
@@ -124,6 +153,19 @@ struct AppleIntelligenceService {
             }
         } catch LanguageModelSession.GenerationError.exceededContextWindowSize {
             throw AppleIntelligenceError.contextTooLong
+        } catch LanguageModelSession.GenerationError.guardrailViolation {
+            // Apple's own description here is the bare "Detected content
+            // likely to be unsafe", which reads as an accusation aimed at
+            // the user. Replace it with something that names the real cause.
+            throw AppleIntelligenceError.safetyBlocked(usedWebSearch: usedWebSearch)
+        } catch LanguageModelSession.GenerationError.refusal {
+            throw AppleIntelligenceError.safetyBlocked(usedWebSearch: usedWebSearch)
+        } catch LanguageModelSession.GenerationError.unsupportedLanguageOrLocale {
+            throw AppleIntelligenceError.unsupportedLanguage
+        } catch LanguageModelSession.GenerationError.rateLimited {
+            throw AppleIntelligenceError.busy
+        } catch LanguageModelSession.GenerationError.concurrentRequests {
+            throw AppleIntelligenceError.busy
         }
     }
 
