@@ -5,6 +5,6 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>AI Chat uses the microphone to transcribe messages on this device.</string>
+	<string>Parley uses the microphone to transcribe messages on this device.</string>
 </dict>
 </plist>

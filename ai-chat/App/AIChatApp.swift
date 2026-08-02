@@ -56,7 +56,7 @@ struct AIChatApp: App {
                     Button("Continue") { storeFailure = nil }
                 } message: {
                     Text(
-                        "AI Chat couldn't open its local database, so this "
+                        "Parley couldn't open its local database, so this "
                         + "session won't be saved. Your existing chats are "
                         + "still on the device. Reinstalling the app clears "
                         + "them permanently.\n\n\(storeFailure ?? "")"

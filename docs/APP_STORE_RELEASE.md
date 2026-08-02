@@ -1,7 +1,8 @@
 # App Store release checklist
 
-What has been done in code, and what only you can do. Guideline numbers
-refer to the [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/).
+The app ships under the name **Parley**. What has been done in code, and
+what only you can do. Guideline numbers refer to the
+[App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/).
 
 Verify guideline text against the live page before submitting — Apple
 renumbers sections between revisions.
@@ -50,6 +51,50 @@ parties, including with third-party AI". The policy must name:
 
 ## App Store Connect setup
 
+### Listing copy — ready to paste
+
+**Name:** Parley
+
+**Subtitle (30 chars max):** `Private AI Chat` (15 chars)
+
+**Category:** Productivity (matches `LSApplicationCategoryType`).
+
+**Description:**
+
+> Parley is a private, bring-your-own-key AI chat app.
+>
+> Talk to Apple's on-device model with no account, no API key, and no
+> data leaving your iPhone — or plug in your own key for OpenAI,
+> Anthropic, Google, DeepSeek, xAI, OpenRouter, a local Ollama server,
+> or any OpenAI-compatible endpoint.
+>
+> PRIVATE BY DESIGN
+> • No account, no sign-up, no tracking, no analytics
+> • Conversations stay on your device
+> • API keys live in the iOS Keychain and never sync
+> • On-device Apple Intelligence works fully offline
+>
+> BRING YOUR OWN KEY
+> • Pay providers directly at cost — no markup, no subscription
+> • Switch providers and models per conversation
+> • Point at any custom OpenAI-compatible server
+>
+> DO MORE
+> • Arm web search to ground answers in current results
+> • Dictate messages with on-device transcription
+> • Full Markdown rendering with code blocks
+>
+> Your keys. Your conversations. Your device.
+
+**Keywords (100 chars max):**
+`ai,chat,chatbot,gpt,claude,gemini,llm,private,byok,openai,assistant,ollama,offline`
+(83 chars — verify count before pasting.)
+
+**Promotional text (170 chars max):**
+> Chat with on-device Apple Intelligence free and offline, or bring
+> your own API key for OpenAI, Claude, Gemini and more. No account. No
+> tracking. No subscription.
+
 ### App Privacy questionnaire
 
 Because there is no developer-operated backend, **"Data is not collected"** is
@@ -75,7 +120,7 @@ minor can reach. This is the largest remaining compliance gap.
 
 Reviewers have no API keys, so say this explicitly:
 
-> AI Chat defaults to Apple's on-device model (Apple Intelligence), which
+> Parley defaults to Apple's on-device model (Apple Intelligence), which
 > needs no API key or network access — please test on an Apple
 > Intelligence–capable device running iOS 26.5+ with Apple Intelligence
 > enabled in Settings. To test a cloud provider instead, open Settings →

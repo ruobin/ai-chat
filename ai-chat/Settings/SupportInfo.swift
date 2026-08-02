@@ -55,7 +55,7 @@ enum SupportInfo {
         components.scheme = "mailto"
         components.path = contactEmail
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "AI Chat — report a response"),
+            URLQueryItem(name: "subject", value: "Parley — report a response"),
             URLQueryItem(name: "body", value: body)
         ]
         return components.url
