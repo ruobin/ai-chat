@@ -122,7 +122,7 @@ enum VoiceInputError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .microphoneDenied:
-            return "Microphone access is off. Enable it for AI Chat in Settings and try again."
+            return "Microphone access is off. Enable it for Parley in Settings and try again."
         case .transcriberUnavailable:
             return "On-device transcription isn't supported on this device."
         case .unsupportedLocale:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI Chat (Xcode project/target/scheme name: `ai-chat`, Swift module `AIChat`)
+Parley (Xcode project/target/scheme name: `ai-chat`, Swift module `AIChat`)
 is a single-target
 SwiftUI iOS app. It has no backend of its own — it's a thin client over two
 kinds of providers: Apple Intelligence's on-device model (via the

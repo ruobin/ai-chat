@@ -1,4 +1,4 @@
-# AI Chat
+# Parley
 
 A SwiftUI chat client for iOS that talks to Apple Intelligence's on-device
 model or any OpenAI-compatible chat completions API. Use it zero-config with
