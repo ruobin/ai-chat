@@ -92,6 +92,22 @@ duplicated terms)
 > your own API key for OpenAI, Claude, Gemini and more. No account. No
 > tracking. No subscription.
 
+**What's New (release notes for 1.0):**
+> First release of Parley.
+>
+> • Chat with Apple's on-device model — free, offline, no API key
+> • Or bring your own key: OpenAI, Anthropic, Google, DeepSeek, xAI,
+>   OpenRouter, Ollama, or any OpenAI-compatible endpoint
+> • Optional web search with cited sources
+> • On-device voice dictation and full Markdown rendering
+> • No account, no tracking, no subscription
+
+**Current build to upload:** version **1.0**, build **2**
+(`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.pbxproj`).
+Build 1 was a pre-release archive that was never uploaded; build 2 adds
+keyboard dismissal in the chat view and completes the Parley rename in
+user-visible strings.
+
 ### App Privacy questionnaire
 
 Because there is no developer-operated backend, **"Data is not collected"** is
@@ -149,7 +165,8 @@ trial build. Pre-empt it.
       Support section and a reply's context menu shows "Report response".
 - [ ] Clean install shows the age gate; a passing year proceeds, an
       under-17 year blocks and stays blocked after relaunch.
-- [ ] Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`.
+- [ ] Bump `CURRENT_PROJECT_VERSION` (done for this upload: 1.0 build 2;
+      bump `MARKETING_VERSION` only for user-facing releases after 1.0).
 - [ ] Archive with the Release configuration, then run the build once from
       the archive on a real device.
 - [ ] First launch on a **clean install** (delete the app first) reaches a
