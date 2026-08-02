@@ -2,11 +2,12 @@
 
 ## Overview
 
-demo-app is a single-target SwiftUI iOS app. It has no backend of its own —
-it's a thin client that speaks the OpenAI `chat/completions` HTTP API
-(streaming, via SSE) to whichever provider the user configures. Local state
-(conversations, messages) is persisted with SwiftData; the API key is
-persisted separately in the Keychain.
+AI Chat (Xcode project/target/scheme name: `demo-app`) is a single-target
+SwiftUI iOS app. It has no backend of its own — it's a thin client that
+speaks the OpenAI `chat/completions` HTTP API (streaming, via SSE) to
+whichever provider the user configures. Local state (conversations,
+messages) is persisted with SwiftData; the API key is persisted separately
+in the Keychain.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

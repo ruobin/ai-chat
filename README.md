@@ -1,9 +1,13 @@
-# demo-app
+# AI Chat
 
 A SwiftUI chat client for iOS that talks to any OpenAI-compatible chat
 completions API. Bring your own key (BYOK): pick a provider preset or point
 it at a custom endpoint, paste in an API key (or skip it for local servers),
 and start chatting. Conversations are persisted locally with SwiftData.
+
+The app displays as **AI Chat** on the home screen (`CFBundleDisplayName`);
+the underlying Xcode project, target, and scheme are still named `demo-app`
+throughout this repo and its tooling (see below).
 
 ## Features
 
