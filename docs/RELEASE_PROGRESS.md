@@ -60,7 +60,7 @@ both of which only the account owner can do. See "Next steps".
 ## Done — 2026-08-03 session
 
 - **`Settings/SupportInfo.swift` filled**: `ruobin.wang.us@gmail.com`,
-  `https://dict.ai-dictionary.org/privacy`, `.../support`. Support
+  `https://parley.ai-dictionary.org/privacy`, `.../support`. Support
   section and Report action now visible.
 - **Age gate built** (Guideline 4.7.5): `Settings/AgeGate.swift`
   (policy, unit-tested in `ai-chatTests/AgeGateTests.swift`) +
@@ -80,7 +80,7 @@ both of which only the account owner can do. See "Next steps".
 
 ## Next steps, in order (account owner only)
 
-1. **Host the two pages** at `https://dict.ai-dictionary.org/privacy`
+1. **Host the two pages** at `https://parley.ai-dictionary.org/privacy`
    and `/support` (files in `website/`). Must be live before
    submission — App Review follows the in-app links.
 2. **Verify on a device/simulator** — age gate flow, Markdown

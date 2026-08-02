@@ -100,7 +100,7 @@ docs/
   APP_STORE_RELEASE.md    Submission checklist, listing copy, review notes
   RELEASE_PROGRESS.md     Working log for the App Store push
 website/
-  privacy.html, support.html   Pages to host at dict.ai-dictionary.org
+  privacy.html, support.html   Pages to host at parley.ai-dictionary.org
 ```
 
 The Xcode target uses a synchronized root group, so these folders are

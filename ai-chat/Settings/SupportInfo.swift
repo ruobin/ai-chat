@@ -23,10 +23,10 @@ enum SupportInfo {
     static let contactEmail = "ruobin.wang.us@gmail.com"
 
     /// Must match the privacy policy URL entered in App Store Connect.
-    static let privacyPolicyURL = URL(string: "https://dict.ai-dictionary.org/privacy")!
+    static let privacyPolicyURL = URL(string: "https://parley.ai-dictionary.org/privacy")!
 
     /// Public support page, used as the App Store "Support URL".
-    static let supportURL = URL(string: "https://dict.ai-dictionary.org/support")!
+    static let supportURL = URL(string: "https://parley.ai-dictionary.org/support")!
 
     /// False while any placeholder above is still in place.
     static var isConfigured: Bool {

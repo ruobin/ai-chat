@@ -7,8 +7,8 @@ rejection risk under Guideline 2.1:
 
 | File | Must be served at |
 | --- | --- |
-| `privacy.html` | `https://dict.ai-dictionary.org/privacy` |
-| `support.html` | `https://dict.ai-dictionary.org/support` |
+| `privacy.html` | `https://parley.ai-dictionary.org/privacy` |
+| `support.html` | `https://parley.ai-dictionary.org/support` |
 
 Notes:
 

@@ -16,8 +16,8 @@ renumbers sections between revisions.
 | Value | Set to | Guideline |
 | --- | --- | --- |
 | `contactEmail` | `ruobin.wang.us@gmail.com` | 1.5, 4.7.1 |
-| `privacyPolicyURL` | `https://dict.ai-dictionary.org/privacy` | 5.1.1(i) |
-| `supportURL` | `https://dict.ai-dictionary.org/support` | 5.1.1(i), 1.5 |
+| `privacyPolicyURL` | `https://parley.ai-dictionary.org/privacy` | 5.1.1(i) |
+| `supportURL` | `https://parley.ai-dictionary.org/support` | 5.1.1(i), 1.5 |
 
 `SupportInfo.isConfigured` is now true, so the Support section in Settings
 and the Report-response action are visible.
@@ -26,7 +26,7 @@ and the Report-response action are visible.
 
 `website/privacy.html` and `website/support.html` are ready to host. They
 must be live at **exactly** the URLs above (serve `privacy.html` at
-`/privacy`, `support.html` at `/support` on `dict.ai-dictionary.org`)
+`/privacy`, `support.html` at `/support` on `parley.ai-dictionary.org`)
 **before submitting** — App Review follows the in-app links, and a 404 is a
 rejection under 2.1. The policy names every selectable provider, Brave
 Search (50-word/400-char cap, 90-day retention), the on-device-only Apple
@@ -143,7 +143,7 @@ trial build. Pre-empt it.
 
 ## Verify before every upload
 
-- [ ] `https://dict.ai-dictionary.org/privacy` and `/support` are **live**
+- [ ] `https://parley.ai-dictionary.org/privacy` and `/support` are **live**
       and match `website/privacy.html` / `website/support.html`.
 - [ ] `SupportInfo.isConfigured` returns true — check Settings shows the
       Support section and a reply's context menu shows "Report response".
