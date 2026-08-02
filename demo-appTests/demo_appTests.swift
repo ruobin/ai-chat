@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import FoundationModels
 @testable import demo_app
 
 struct demo_appTests {
@@ -45,6 +46,77 @@ struct demo_appTests {
 
         let settings = ChatSettings(defaults: defaults)
         #expect(settings.temperature == 0.7)
+    }
+}
+
+/// Covers the Apple Intelligence (on-device) provider preset: sentinel base
+/// URL detection, keyless operation, and transcript construction for
+/// session replay. These are pure value-type tests — no model is loaded.
+@Suite struct AppleIntelligencePresetTests {
+    @Test func sentinelBaseURLDetectsAppleIntelligencePreset() {
+        #expect(ProviderPreset.detect(from: "apple-intelligence://on-device") == .appleIntelligence)
+    }
+
+    @Test func appleIntelligenceAllowsEmptyKeyAndSuggestsNoModels() {
+        #expect(ProviderPreset.appleIntelligence.allowsEmptyKey)
+        #expect(ProviderPreset.appleIntelligence.isOnDevice)
+        #expect(ProviderPreset.appleIntelligence.suggestedModels.isEmpty)
+        #expect(ProviderPreset.openAI.isOnDevice == false)
+    }
+}
+
+@Suite struct AppleIntelligenceTranscriptTests {
+    @Test func buildsInstructionsPromptResponseEntriesInOrder() throws {
+        let messages = [
+            ProviderChatMessage(role: "system", content: "Be terse."),
+            ProviderChatMessage(role: "user", content: "Hi"),
+            ProviderChatMessage(role: "assistant", content: "Hello!"),
+            ProviderChatMessage(role: "user", content: "How are you?"),
+        ]
+
+        let (transcript, prompt) = try AppleIntelligenceService.makeTranscript(from: messages)
+
+        #expect(prompt == "How are you?")
+        #expect(transcript.count == 3)
+        guard case .instructions = transcript[0] else {
+            Issue.record("entry 0 should be instructions")
+            return
+        }
+        guard case .prompt = transcript[1] else {
+            Issue.record("entry 1 should be a prompt")
+            return
+        }
+        guard case .response = transcript[2] else {
+            Issue.record("entry 2 should be a response")
+            return
+        }
+    }
+
+    @Test func firstTurnHasOnlyInstructionsAndPrompt() throws {
+        let messages = [
+            ProviderChatMessage(role: "system", content: "Be terse."),
+            ProviderChatMessage(role: "user", content: "Hi"),
+        ]
+
+        let (transcript, prompt) = try AppleIntelligenceService.makeTranscript(from: messages)
+
+        #expect(prompt == "Hi")
+        #expect(transcript.count == 1)
+        guard case .instructions = transcript[0] else {
+            Issue.record("entry 0 should be instructions")
+            return
+        }
+    }
+
+    @Test func throwsWhenLastMessageIsNotFromUser() {
+        let messages = [
+            ProviderChatMessage(role: "user", content: "Hi"),
+            ProviderChatMessage(role: "assistant", content: "Hello!"),
+        ]
+
+        #expect(throws: AppleIntelligenceError.self) {
+            _ = try AppleIntelligenceService.makeTranscript(from: messages)
+        }
     }
 }
 

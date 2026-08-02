@@ -197,7 +197,7 @@ struct ChatService {
                   let token = parsed.choices.first?.delta?.content,
                   !token.isEmpty
             else { continue }
-            await onToken(token)
+            onToken(token)
         }
     }
 

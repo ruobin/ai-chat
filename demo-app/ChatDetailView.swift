@@ -18,6 +18,7 @@ struct ChatDetailView: View {
     @State private var showModelPicker: Bool = false
 
     private let service = ChatService()
+    private let appleService = AppleIntelligenceService()
     private let settings = ChatSettings.shared
 
     var body: some View {
@@ -165,12 +166,22 @@ struct ChatDetailView: View {
         streamTask = Task { @MainActor in
             do {
                 let providerMessages = buildProviderMessages()
-                try await service.streamCompletion(
-                    baseURL: conversation.effectiveBaseURL,
-                    model: conversation.effectiveModelName,
-                    messages: providerMessages
-                ) { token in
-                    streamBuffer.append(token)
+                if ProviderPreset.detect(from: conversation.effectiveBaseURL).isOnDevice {
+                    // Apple Intelligence: generate locally via Foundation
+                    // Models — no HTTP, no key.
+                    try await appleService.streamCompletion(
+                        messages: providerMessages
+                    ) { token in
+                        streamBuffer.append(token)
+                    }
+                } else {
+                    try await service.streamCompletion(
+                        baseURL: conversation.effectiveBaseURL,
+                        model: conversation.effectiveModelName,
+                        messages: providerMessages
+                    ) { token in
+                        streamBuffer.append(token)
+                    }
                 }
                 streamBuffer.flush()
                 if !streamBuffer.content.isEmpty {
@@ -506,61 +517,75 @@ private struct ModelProviderPickerSheet: View {
                 }
 
                 Section {
-                    TextField("Model name", text: $modelName)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .onChange(of: modelName) { _, _ in
-                            applyChanges()
-                        }
-
-                    Button {
-                        Task { await fetchModels() }
-                    } label: {
-                        if isFetchingModels {
-                            HStack {
-                                ProgressView()
-                                Text("Fetching models…")
-                            }
+                    if preset.isOnDevice {
+                        // On-device model: there is nothing to pick or fetch —
+                        // just report whether this device can run it.
+                        if let message = AppleIntelligenceService.status.unavailableMessage {
+                            Label(message, systemImage: "exclamationmark.triangle")
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
                         } else {
-                            Label("Fetch available models", systemImage: "arrow.clockwise")
+                            Label("On-device model ready — no key or network needed.", systemImage: "checkmark.circle")
+                                .font(.footnote)
+                                .foregroundStyle(.green)
                         }
-                    }
-                    .disabled(isFetchingModels)
+                    } else {
+                        TextField("Model name", text: $modelName)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .onChange(of: modelName) { _, _ in
+                                applyChanges()
+                            }
 
-                    if let fetchModelsError {
-                        Text(fetchModelsError)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-
-                    if !availableModels.isEmpty {
-                        ForEach(availableModels, id: \.id) { model in
-                            Button {
-                                modelName = model.id
-                            } label: {
+                        Button {
+                            Task { await fetchModels() }
+                        } label: {
+                            if isFetchingModels {
                                 HStack {
-                                    Text(model.id)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if modelName == model.id {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(Color.accentColor)
+                                    ProgressView()
+                                    Text("Fetching models…")
+                                }
+                            } else {
+                                Label("Fetch available models", systemImage: "arrow.clockwise")
+                            }
+                        }
+                        .disabled(isFetchingModels)
+
+                        if let fetchModelsError {
+                            Text(fetchModelsError)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
+
+                        if !availableModels.isEmpty {
+                            ForEach(availableModels, id: \.id) { model in
+                                Button {
+                                    modelName = model.id
+                                } label: {
+                                    HStack {
+                                        Text(model.id)
+                                            .foregroundStyle(.primary)
+                                        Spacer()
+                                        if modelName == model.id {
+                                            Image(systemName: "checkmark")
+                                                .foregroundStyle(Color.accentColor)
+                                        }
                                     }
                                 }
                             }
-                        }
-                    } else if !preset.suggestedModels.isEmpty {
-                        ForEach(preset.suggestedModels, id: \.self) { model in
-                            Button {
-                                modelName = model
-                            } label: {
-                                HStack {
-                                    Text(model)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if modelName == model {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(Color.accentColor)
+                        } else if !preset.suggestedModels.isEmpty {
+                            ForEach(preset.suggestedModels, id: \.self) { model in
+                                Button {
+                                    modelName = model
+                                } label: {
+                                    HStack {
+                                        Text(model)
+                                            .foregroundStyle(.primary)
+                                        Spacer()
+                                        if modelName == model {
+                                            Image(systemName: "checkmark")
+                                                .foregroundStyle(Color.accentColor)
+                                        }
                                     }
                                 }
                             }

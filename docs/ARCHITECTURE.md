@@ -3,11 +3,12 @@
 ## Overview
 
 AI Chat (Xcode project/target/scheme name: `demo-app`) is a single-target
-SwiftUI iOS app. It has no backend of its own — it's a thin client that
-speaks the OpenAI `chat/completions` HTTP API (streaming, via SSE) to
-whichever provider the user configures. Local state (conversations,
-messages) is persisted with SwiftData; the API key is persisted separately
-in the Keychain.
+SwiftUI iOS app. It has no backend of its own — it's a thin client over two
+kinds of providers: Apple Intelligence's on-device model (via the
+Foundation Models framework, iOS 26+), and any OpenAI-compatible
+`chat/completions` HTTP API (streaming, via SSE). Local state
+(conversations, messages) is persisted with SwiftData; API keys are
+persisted separately in the Keychain.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -26,21 +27,26 @@ in the Keychain.
       │   (Conversation,    │              │   (@Observable)     │
       │    Message)         │              │                     │
       └───────────────────┘              └──────────┬──────────┘
-                                                       │
-                                          reads/writes  │
-                                                       ▼
-                                              ┌──────────────────┐
-                                              │  KeychainStore    │
-                                              │  (API key only)   │
-                                              └──────────────────┘
+                                                        │
+                                           reads/writes  │
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │  KeychainStore    │
+                                               │  (API key only)   │
+                                               └──────────────────┘
                 │
                 ▼
-      ┌───────────────────┐
-      │   ChatService       │
-      │   (streaming HTTP   │──────▶  Provider API (OpenAI, Anthropic,
-      │    client)           │         Google, DeepSeek, xAI, OpenRouter,
-      └───────────────────┘         Ollama, or any custom OpenAI-compatible
-                                      endpoint)
+      ┌───────────────────┐        ┌──────────────────────────────┐
+      │   ChatService       │        │   AppleIntelligenceService    │
+      │   (streaming HTTP   │──────▶ │   (Foundation Models —        │
+      │    client)          │        │    on-device generation)      │
+      └─────────┬─────────┘        └──────────────┬───────────────┘
+                │                                  │
+                ▼                                  ▼
+        Provider API (OpenAI, Anthropic,   Apple Intelligence
+        Google, DeepSeek, xAI, OpenRouter, on-device model
+        Ollama, or any custom              (no network, no key)
+        OpenAI-compatible endpoint)
 ```
 
 ## Components
@@ -84,7 +90,14 @@ with the `0.7` default on relaunch. It exposes:
 
 `ProviderPreset` is a static enum of known providers with their default
 base URL, default model, suggested models list, and an `allowsEmptyKey`
-flag for providers that don't require auth (Ollama, custom).
+flag for providers that don't require auth (Apple Intelligence, Ollama,
+custom). The `.appleIntelligence` case is the odd one out: it isn't an HTTP
+endpoint, so its `defaultBaseURL` is a sentinel string
+(`apple-intelligence://on-device`) that can never collide with a real URL.
+That keeps `detect(from:)`, per-conversation overrides, and per-provider
+model memory working unchanged, while `ProviderPreset.isOnDevice` tells the
+UI and the send loop to route generation to `AppleIntelligenceService`
+instead of `ChatService`.
 
 #### Multi-provider API keys and models
 
@@ -191,6 +204,45 @@ user fetch and pick from the live list of models their configured provider
 actually supports, instead of relying solely on the static
 `suggestedModels` per preset.
 
+### On-device generation (`AppleIntelligenceService`)
+
+`AppleIntelligenceService` is the on-device counterpart to `ChatService`,
+built on the Foundation Models framework (`SystemLanguageModel` /
+`LanguageModelSession`, iOS 26+). It mirrors the same streaming contract —
+full history in, token deltas delivered on the main actor — so
+`ChatDetailView`'s send loop, throttling, stop button, and error handling
+work identically for both provider kinds.
+
+Key design points:
+
+- **Stateless like the HTTP path.** The framework's
+  `LanguageModelSession` normally accumulates its own context, but this
+  app owns the conversation history (SwiftData) and resends it every turn
+  — so each call builds a *fresh* session seeded with a `Transcript`
+  replayed from the message list (`makeTranscript(from:)`): system prompt
+  → `.instructions`, user → `.prompt`, assistant → `.response`, and the
+  trailing user message becomes the actual prompt. This keeps retry /
+  regenerate / per-conversation provider switching consistent with the
+  HTTP providers, at the cost of re-ingesting history each turn.
+- **Streaming**: `session.streamResponse(to:options:)` yields cumulative
+  snapshots; the service diffs each snapshot against the previous one and
+  forwards only the new suffix to `onToken`, so callers can append exactly
+  like they do for SSE chunks.
+- **Availability**: `SystemLanguageModel.default.availability` maps to the
+  `AppleIntelligenceStatus` enum (`.available` / device not eligible /
+  Apple Intelligence not enabled / model still downloading). Settings and
+  the per-conversation picker show this instead of the API-key / model
+  controls, and streaming throws a descriptive error if the model isn't
+  usable. The status read is observation-tracked, so those rows update
+  live when a model download finishes.
+- **Temperature**: passed through to `GenerationOptions(temperature:)`, so
+  the same Settings slider applies (no model-name gating needed — there's
+  exactly one on-device model).
+- **Context window**: the on-device model has a ~4k-token context.
+  `GenerationError.exceededContextWindowSize` is mapped to a friendly
+  "conversation too long" error suggesting a new chat or a cloud provider.
+- No entitlement, no network permission, and no API key are required.
+
 ### Secure storage (`KeychainStore`)
 
 A minimal wrapper around the Keychain Services API (`SecItemAdd` /
@@ -205,26 +257,31 @@ again.
 ### UI layer
 
 - **`ContentView`** — `NavigationSplitView` sidebar of conversations
-  (via `@Query`), with new/delete actions and gating: if no API key is set,
-  `SettingsView` is presented automatically on first appearance.
+  (via `@Query`), with new/delete actions and gating: if the active
+  provider *requires* a key and none is set, `SettingsView` is presented
+  automatically on first appearance (keyless providers — Apple
+  Intelligence, Ollama, custom — don't trigger this).
 - **`ChatDetailView`** — owns the send/stream loop. On send, it appends a
-  user `Message`, saves, then starts a cancellable `Task` that calls
+  user `Message`, saves, then starts a cancellable `Task` that branches on
+  the conversation's preset: HTTP providers go to
   `ChatService.streamCompletion` with the conversation's own
-  `effectiveBaseURL`/`effectiveModelName`. Incoming tokens land in a
-  private `@Observable StreamBuffer` that flushes into view state at most
-  ~15×/s (rather than per token), so a fast stream doesn't force a full
-  view re-render — and a re-sort of the message list — on every chunk. A
-  final `flush()` on completion/cancel guarantees no trailing tokens are
-  lost. The streaming text is rendered as a separate "streaming bubble"
-  while in flight, then committed as an assistant `Message` on success, as
-  an inline ⚠️ error message on failure, or as a partial reply (no alert)
-  if the user taps stop. The send button becomes a stop button while
-  streaming. The navigation-bar title area shows this conversation's
-  active provider/model and is tappable to open
+  `effectiveBaseURL`/`effectiveModelName`; the on-device preset goes to
+  `AppleIntelligenceService.streamCompletion`. Both deliver tokens the same
+  way: into a private `@Observable StreamBuffer` that flushes into view
+  state at most ~15×/s (rather than per token), so a fast stream doesn't
+  force a full view re-render — and a re-sort of the message list — on
+  every chunk. A final `flush()` on completion/cancel guarantees no
+  trailing tokens are lost. The streaming text is rendered as a separate
+  "streaming bubble" while in flight, then committed as an assistant
+  `Message` on success, as an inline ⚠️ error message on failure, or as a
+  partial reply (no alert) if the user taps stop. The send button becomes a
+  stop button while streaming. The navigation-bar title area shows this
+  conversation's active provider/model and is tappable to open
   `ModelProviderPickerSheet` — a scoped version of the provider/model
   pickers from `SettingsView`, but editing the conversation's own override
   (see "Per-conversation provider/model" above) rather than the global
-  default.
+  default. For the on-device preset the sheet hides the model controls and
+  shows the device's Apple Intelligence availability instead.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
   API key save/remove flow, a "Fetch available models" action that
@@ -269,8 +326,10 @@ side by side.
 2. `ChatDetailView.send()` trims input, appends a `user` `Message` to the
    conversation, persists via `modelContext.save()`.
 3. A `Task` builds the full provider message list (system prompt + all
-   non-system messages in chronological order) and calls
-   `ChatService.streamCompletion`.
+   non-system messages in chronological order) and calls either
+   `ChatService.streamCompletion` (HTTP providers) or
+   `AppleIntelligenceService.streamCompletion` (on-device preset), chosen
+   by `ProviderPreset.detect(from: conversation.effectiveBaseURL)`.
 4. Each streamed token is appended to the `StreamBuffer`, which re-renders
    the `StreamingBubble` in real time (throttled to ~15 updates/s; a final
    `flush()` on completion guarantees no trailing tokens are lost).
@@ -282,8 +341,11 @@ side by side.
 
 Note the full message history is resent on every turn (no server-side
 session/thread state) — this is standard for stateless chat completion
-APIs, but means token costs grow with conversation length. There is no
-truncation/summarization strategy in place yet.
+APIs, and the on-device path mirrors it by replaying a `Transcript` into a
+fresh `LanguageModelSession` each call. Token costs grow with conversation
+length for HTTP providers, and the on-device model hard-fails past its
+~4k-token context window. There is no truncation/summarization strategy in
+place yet.
 
 ## Known gaps / suggested next steps
 
@@ -299,7 +361,9 @@ truncation/summarization strategy in place yet.
   yet for `Conversation`/`Message`; add one before the first schema change
   ships to users with existing data.
 - **Context length management**: long conversations are resent in full on
-  every request with no truncation or summarization.
+  every turn with no truncation or summarization. This bites the on-device
+  model first (~4k-token context — the stream fails with a "conversation
+  too long" error), but every provider has a limit.
 - **Custom base URL key/model "loss" on retyping**: keys and remembered
   models for the `.custom` preset are scoped to the exact base URL string.
   Editing a custom base URL (even fixing a typo) is indistinguishable from

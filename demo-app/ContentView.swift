@@ -24,9 +24,11 @@ struct ContentView: View {
             SettingsView()
         }
         .onAppear {
-            // First-run onboarding: no key yet, so open Settings (the same
-            // sheet the gear button shows) automatically.
-            if !settings.hasAPIKey {
+            // First-run onboarding: auto-open Settings only when the active
+            // provider actually needs a key and doesn't have one. Keyless
+            // providers (Apple Intelligence, Ollama, custom) shouldn't be
+            // pestered on every launch.
+            if !settings.detectedPreset.allowsEmptyKey && !settings.hasAPIKey {
                 showSettings = true
             }
         }

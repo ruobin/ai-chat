@@ -1,9 +1,11 @@
 # AI Chat
 
-A SwiftUI chat client for iOS that talks to any OpenAI-compatible chat
-completions API. Bring your own key (BYOK): pick a provider preset or point
-it at a custom endpoint, paste in an API key (or skip it for local servers),
-and start chatting. Conversations are persisted locally with SwiftData.
+A SwiftUI chat client for iOS that talks to Apple Intelligence's on-device
+model or any OpenAI-compatible chat completions API. Use it zero-config with
+the built-in on-device model, or bring your own key (BYOK): pick a provider
+preset or point it at a custom endpoint, paste in an API key (or skip it for
+local servers), and start chatting. Conversations are persisted locally with
+SwiftData.
 
 The app displays as **AI Chat** on the home screen (`CFBundleDisplayName`);
 the underlying Xcode project, target, and scheme are still named `demo-app`
@@ -11,6 +13,9 @@ throughout this repo and its tooling (see below).
 
 ## Features
 
+- **Apple Intelligence on-device provider** — chat with the built-in
+  ~3B-parameter local model via the Foundation Models framework. No API key,
+  no network, fully private. Requires an Apple Intelligence–capable device
 - Streaming responses via Server-Sent Events (`/chat/completions` with
   `stream: true`), with a stop button that keeps the partial reply
 - Presets for OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek,
@@ -27,19 +32,23 @@ throughout this repo and its tooling (see below).
 
 ## Requirements
 
-- Xcode 16+
-- iOS 18+ (uses the `@Observable` macro and SwiftData)
+- Xcode 26+ (the app links the Foundation Models framework, iOS 26 SDK)
+- iOS 26+ (deployment target 26.5)
+- The Apple Intelligence provider additionally requires a device that
+  supports Apple Intelligence, with Apple Intelligence enabled and the
+  on-device model downloaded. All other providers work on any device.
 
 ## Getting started
 
 1. Open `demo-app.xcodeproj` in Xcode.
 2. Build and run the `demo-app` scheme on a simulator or device.
-3. On first launch you'll be prompted for Settings — pick a provider preset,
+3. Zero-config option: in Settings, pick the **Apple Intelligence** preset —
+   no key needed on a capable device. Otherwise pick a provider preset,
    paste an API key (skip this for Ollama/local), and choose a model.
 4. Start a new chat from the pencil icon in the sidebar.
 
 No API key ships with the app. You must supply your own from your chosen
-provider.
+provider (except Apple Intelligence, which needs none).
 
 ## Project layout
 
@@ -50,6 +59,7 @@ demo-app/
   ChatDetailView.swift    Message list, throttled streaming bubble, input bar
   SettingsView.swift      Provider/model/API key/system prompt/temperature UI
   ChatService.swift       OpenAI-compatible streaming HTTP client
+  AppleIntelligenceService.swift  On-device model via Foundation Models
   ChatSettings.swift      Observable settings store + provider presets
   Conversation.swift      SwiftData model (incl. per-conversation provider)
   Message.swift           SwiftData model
@@ -72,8 +82,9 @@ xcodebuild test -project demo-app.xcodeproj -scheme demo-app \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-`demo-appTests` covers `ChatSettings` temperature persistence and (currently
-disabled — see commit history) per-provider key/model scoping,
+`demo-appTests` covers `ChatSettings` temperature persistence, the Apple
+Intelligence preset (sentinel detection, transcript construction), and
+(currently disabled — see commit history) per-provider key/model scoping,
 `ProviderPreset.detect`, and per-conversation provider overrides. See
 `docs/ARCHITECTURE.md` for remaining coverage gaps.
 
@@ -83,5 +94,8 @@ disabled — see commit history) per-provider key/model scoping,
   under service `com.demo-app.byok`, scoped per provider base URL.
 - Keys are sent only as the `Authorization: Bearer <key>` header on requests
   to the base URL you configure. No key is logged or transmitted elsewhere.
+- The Apple Intelligence provider never touches the network or a key —
+  prompts and responses stay on the device (subject to Apple's own
+  on-device processing guarantees).
 - Local/custom providers (Ollama, custom endpoints) are allowed to run with
   no key at all.

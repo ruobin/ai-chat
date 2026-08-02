@@ -185,6 +185,7 @@ final class ChatSettings {
 }
 
 enum ProviderPreset: String, CaseIterable, Identifiable {
+    case appleIntelligence
     case openAI
     case anthropic
     case google
@@ -198,6 +199,7 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
+        case .appleIntelligence: return "Apple Intelligence"
         case .openAI: return "OpenAI"
         case .anthropic: return "Anthropic (Claude)"
         case .google: return "Google (Gemini)"
@@ -209,8 +211,20 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Whether this provider is the on-device Apple Intelligence model
+    /// rather than an HTTP endpoint. Its `defaultBaseURL` is a sentinel
+    /// (`apple-intelligence://on-device`) that never collides with a real
+    /// URL, so per-conversation overrides, per-provider model memory, and
+    /// `detect(from:)` all keep working unchanged; `ChatDetailView`
+    /// branches on this to route generation to `AppleIntelligenceService`
+    /// instead of `ChatService`.
+    var isOnDevice: Bool {
+        self == .appleIntelligence
+    }
+
     var defaultBaseURL: String {
         switch self {
+        case .appleIntelligence: return "apple-intelligence://on-device"
         case .openAI: return "https://api.openai.com/v1"
         case .anthropic: return "https://api.anthropic.com/v1"
         case .google: return "https://generativelanguage.googleapis.com/v1beta/openai"
@@ -224,6 +238,7 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
 
     var defaultModel: String {
         switch self {
+        case .appleIntelligence: return "On-device"
         case .openAI: return "gpt-4o-mini"
         case .anthropic: return "claude-sonnet-4-6"
         case .google: return "gemini-2.5-flash"
@@ -238,6 +253,7 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     /// Free-form suggestions shown beneath the model field to make BYOK setup faster.
     var suggestedModels: [String] {
         switch self {
+        case .appleIntelligence: return []
         case .openAI: return ["gpt-4o-mini", "gpt-4o", "gpt-4.1", "gpt-4.1-mini", "o4-mini"]
         case .anthropic: return ["claude-sonnet-4-6", "claude-opus-5", "claude-haiku-4-5"]
         case .google: return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]
@@ -251,6 +267,8 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
 
     var infoNote: String? {
         switch self {
+        case .appleIntelligence:
+            return "Apple Intelligence's on-device model (iOS 26+). No API key, no network — generation runs entirely on this device. Requires an Apple Intelligence–capable device with Apple Intelligence enabled."
         case .openAI:
             return "OpenAI's API. Get a key at platform.openai.com."
         case .anthropic:
@@ -272,7 +290,7 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
 
     /// Providers that don't require an API key.
     var allowsEmptyKey: Bool {
-        self == .ollama || self == .custom
+        self == .appleIntelligence || self == .ollama || self == .custom
     }
 
     /// Best-effort detection of which preset a base URL matches by exact

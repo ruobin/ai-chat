@@ -29,7 +29,9 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                apiKeySection
+                if !preset.isOnDevice {
+                    apiKeySection
+                }
                 providerSection
                 modelSection
                 systemPromptSection
@@ -100,10 +102,24 @@ struct SettingsView: View {
             .onChange(of: preset) { _, new in
                 settings.applyPreset(new)
             }
-            TextField("Base URL", text: $settings.baseURLString)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
+            if preset.isOnDevice {
+                // On-device model: no endpoint to edit — show whether this
+                // device can actually run it instead.
+                if let message = AppleIntelligenceService.status.unavailableMessage {
+                    Label(message, systemImage: "exclamationmark.triangle")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                } else {
+                    Label("On-device model ready.", systemImage: "checkmark.circle")
+                        .font(.footnote)
+                        .foregroundStyle(.green)
+                }
+            } else {
+                TextField("Base URL", text: $settings.baseURLString)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+            }
             if let note = preset.infoNote {
                 Text(note)
                     .font(.footnote)
@@ -129,62 +145,64 @@ struct SettingsView: View {
 
     private var modelSection: some View {
         Section {
-            TextField("Model name", text: $settings.modelName)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+            if !preset.isOnDevice {
+                TextField("Model name", text: $settings.modelName)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
 
-            Button {
-                Task { await fetchModels() }
-            } label: {
-                if isFetchingModels {
-                    HStack {
-                        ProgressView()
-                        Text("Fetching models…")
-                    }
-                } else {
-                    Label("Fetch available models", systemImage: "arrow.clockwise")
-                }
-            }
-            .disabled(isFetchingModels)
-
-            if let fetchModelsError {
-                Text(fetchModelsError)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-
-            if !availableModels.isEmpty {
-                Picker("Available models", selection: Binding(
-                    get: { settings.modelName },
-                    set: { settings.modelName = $0 }
-                )) {
-                    ForEach(availableModels) { model in
-                        Text(model.id).tag(model.id)
+                Button {
+                    Task { await fetchModels() }
+                } label: {
+                    if isFetchingModels {
+                        HStack {
+                            ProgressView()
+                            Text("Fetching models…")
+                        }
+                    } else {
+                        Label("Fetch available models", systemImage: "arrow.clockwise")
                     }
                 }
-                .pickerStyle(.navigationLink)
-            }
+                .disabled(isFetchingModels)
 
-            if !preset.suggestedModels.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(preset.suggestedModels, id: \.self) { model in
-                            Button {
-                                settings.modelName = model
-                            } label: {
-                                Text(model)
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        Capsule().fill(
-                                            settings.modelName == model
-                                                ? Color.accentColor.opacity(0.2)
-                                                : Color.secondary.opacity(0.12)
+                if let fetchModelsError {
+                    Text(fetchModelsError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                if !availableModels.isEmpty {
+                    Picker("Available models", selection: Binding(
+                        get: { settings.modelName },
+                        set: { settings.modelName = $0 }
+                    )) {
+                        ForEach(availableModels) { model in
+                            Text(model.id).tag(model.id)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+                }
+
+                if !preset.suggestedModels.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(preset.suggestedModels, id: \.self) { model in
+                                Button {
+                                    settings.modelName = model
+                                } label: {
+                                    Text(model)
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule().fill(
+                                                settings.modelName == model
+                                                    ? Color.accentColor.opacity(0.2)
+                                                    : Color.secondary.opacity(0.12)
+                                            )
                                         )
-                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -192,8 +210,13 @@ struct SettingsView: View {
         } header: {
             Text("Model")
         } footer: {
-            Text("Fetch the live list from your provider, tap a suggestion, or type your own model name. This is the default used for new conversations — existing conversations keep whatever model they were started with (or last switched to individually) unless you change it from within that conversation.")
-                .font(.footnote)
+            if preset.isOnDevice {
+                Text("Apple Intelligence has a single built-in model — nothing to choose here.")
+                    .font(.footnote)
+            } else {
+                Text("Fetch the live list from your provider, tap a suggestion, or type your own model name. This is the default used for new conversations — existing conversations keep whatever model they were started with (or last switched to individually) unless you change it from within that conversation.")
+                    .font(.footnote)
+            }
         }
     }
 
@@ -259,7 +282,9 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             LabeledContent("Endpoint") {
-                Text(settings.baseURLString)
+                Text(settings.detectedPreset.isOnDevice
+                     ? "On-device — no network"
+                     : settings.baseURLString)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -270,10 +295,12 @@ struct SettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            LabeledContent("Keychain entry") {
-                Text(settings.hasAPIKey ? "Saved" : "Not set")
-                    .font(.footnote)
-                    .foregroundStyle(settings.hasAPIKey ? .green : .secondary)
+            if !settings.detectedPreset.isOnDevice {
+                LabeledContent("Keychain entry") {
+                    Text(settings.hasAPIKey ? "Saved" : "Not set")
+                        .font(.footnote)
+                        .foregroundStyle(settings.hasAPIKey ? .green : .secondary)
+                }
             }
         } header: {
             Text("Default for new conversations")
