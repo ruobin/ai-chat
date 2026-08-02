@@ -37,6 +37,8 @@ keep upgrading in place instead of being orphaned. App Store listing name:
 - API keys stored in the iOS Keychain, never in `UserDefaults` or logs
 - Local conversation history via SwiftData, with swipe-to-delete
 - Configurable system prompt, temperature, and light/dark/system theme
+- Declared-age gate on first launch (17+, App Review Guideline 4.7.5);
+  the birth year is stored only on the device
 
 ## Requirements
 
@@ -52,7 +54,8 @@ keep upgrading in place instead of being orphaned. App Store listing name:
 ## Getting started
 
 1. Open `ai-chat.xcodeproj` in Xcode.
-2. Build and run the `ai-chat` scheme on a simulator or device.
+2. Build and run the `ai-chat` scheme on a simulator or device. First
+   launch asks for a birth year (the 17+ age gate) before anything else.
 3. Zero-config option: in Settings, pick the **Apple Intelligence** preset —
    no key needed on a capable device. Otherwise pick a provider preset,
    paste an API key (skip this for Ollama/local), and choose a model.
@@ -77,9 +80,12 @@ ai-chat/
     WebResearchService.swift        Brave retrieval, limits, source validation
     KeychainStore.swift   Keychain read/write/delete wrapper for API keys
   Settings/
+    AgeGate.swift         Declared-age gate policy (17+, Guideline 4.7.5)
     ChatSettings.swift    Observable settings store + provider presets
+    SupportInfo.swift     Contact email, privacy/support URLs, report mail
     WebSearchSettings.swift  Brave key and disclosure preference storage
   Views/
+    AgeGateView.swift     First-launch birth-year gate + under-17 block
     ContentView.swift     Sidebar + navigation split view, conversation list
     ChatDetailView.swift  Message list, throttled streaming bubble, input bar
     SettingsView.swift    Provider/model/key/system prompt/temperature UI
@@ -91,6 +97,10 @@ ai-chatTests/            Unit test target (Swift Testing)
 ai-chatUITests/          UI test target (XCTest)
 docs/
   ARCHITECTURE.md         Component map, data flow, known gaps
+  APP_STORE_RELEASE.md    Submission checklist, listing copy, review notes
+  RELEASE_PROGRESS.md     Working log for the App Store push
+website/
+  privacy.html, support.html   Pages to host at dict.ai-dictionary.org
 ```
 
 The Xcode target uses a synchronized root group, so these folders are
@@ -110,7 +120,8 @@ xcodebuild test -project ai-chat.xcodeproj -scheme ai-chat \
 ```
 
 `ai-chatTests` covers `ChatSettings` temperature persistence, the Apple
-Intelligence preset (sentinel detection, transcript construction), and
+Intelligence preset (sentinel detection, transcript construction), the
+`AgeGate` policy (pass/block boundaries, undeclared state), and
 (currently disabled — see commit history) per-provider key/model scoping,
 `ProviderPreset.detect`, and per-conversation provider overrides. See
 `docs/ARCHITECTURE.md` for remaining coverage gaps.

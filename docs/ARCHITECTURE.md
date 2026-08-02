@@ -259,10 +259,27 @@ again.
 ### UI layer
 
 - **`ContentView`** — `NavigationSplitView` sidebar of conversations
-  (via `@Query`), with new/delete actions and gating: if the active
-  provider *requires* a key and none is set, `SettingsView` is presented
-  automatically on first appearance (keyless providers — Apple
-  Intelligence, Ollama, custom — don't trigger this).
+  (via `@Query`), with new/delete actions and two layers of first-run
+  gating. First, the age gate: until a passing birth year is declared,
+  `AgeGateView` is presented as a non-dismissable `fullScreenCover`.
+  Second, onboarding: if the active provider *requires* a key and none is
+  set, `SettingsView` is presented automatically (keyless providers —
+  Apple Intelligence, Ollama, custom — don't trigger this). The Settings
+  sheet only presents once the age gate has passed
+  (`maybeShowFirstRunSettings()`, re-checked via `onChange` of the
+  declared birth year), so the two never compete for the same
+  presentation slot.
+- **`AgeGateView` / `AgeGate`** — declared-age gate required by App
+  Review Guideline 4.7.5 (the app renders unfiltered model output, rated
+  17+). `AgeGate` (`Settings/AgeGate.swift`) is a `nonisolated` enum
+  holding the pure policy — minimum age, UserDefaults key
+  (`ageGate.declaredBirthYear`, `0` = undeclared), `passes(birthYear:now:)`,
+  and the selectable year range — so it's unit-testable with injected
+  dates. `AgeGateView` shows a birth-year wheel on first launch; a
+  passing year dismisses the cover (the binding reads the `@AppStorage`
+  value), while an under-17 declaration switches to a persistent blocked
+  screen with no way to re-enter a different year. Only the year is
+  collected, stored only on-device.
 - **`ChatDetailView`** — owns the send/stream loop. On send, it appends a
   user `Message`, saves, then starts a cancellable `Task` that branches on
   the conversation's preset: HTTP providers go to
@@ -430,7 +447,9 @@ place yet.
 ## Known gaps / suggested next steps
 
 - **Test coverage**: `ai-chatTests` covers `ChatSettings` temperature
-  persistence (including the 0.0-survives-relaunch case), plus (currently
+  persistence (including the 0.0-survives-relaunch case), the `AgeGate`
+  policy (pass/block boundaries at 17, undeclared state, year range),
+  plus (currently
   disabled — see `f83524d`) per-provider API key isolation,
   model-per-provider recall via `applyPreset(_:)`, legacy shared-key
   migration, `ProviderPreset.detect`, and `Conversation`'s
