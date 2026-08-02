@@ -735,6 +735,10 @@ private struct ModelProviderPickerSheet: View {
 
     @State private var apiKeyInput: String
     @State private var keySaveError: String?
+    // Mirrored into @State (rather than computed from the Keychain on each
+    // body pass) so saving/removing a key actually re-renders the sheet —
+    // Keychain writes are invisible to SwiftUI's change tracking.
+    @State private var hasAPIKey: Bool
 
     private let service = ChatService()
 
@@ -745,10 +749,7 @@ private struct ModelProviderPickerSheet: View {
         _modelName = State(initialValue: conversation.effectiveModelName)
         _preset = State(initialValue: ProviderPreset.detect(from: url))
         _apiKeyInput = State(initialValue: ChatSettings.shared.apiKey(forBaseURL: url) ?? "")
-    }
-
-    private var hasAPIKey: Bool {
-        settings.hasAPIKey(forBaseURL: baseURL)
+        _hasAPIKey = State(initialValue: ChatSettings.shared.hasAPIKey(forBaseURL: url))
     }
 
     var body: some View {
@@ -901,6 +902,7 @@ private struct ModelProviderPickerSheet: View {
                     apiKeyInput = ""
                     keySaveError = nil
                     try? settings.setAPIKey(nil, forBaseURL: baseURL)
+                    hasAPIKey = false
                 } label: {
                     Label("Remove saved key", systemImage: "trash")
                 }
@@ -922,6 +924,7 @@ private struct ModelProviderPickerSheet: View {
         do {
             try settings.setAPIKey(apiKeyInput, forBaseURL: baseURL)
             keySaveError = nil
+            hasAPIKey = true
         } catch {
             keySaveError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -932,6 +935,7 @@ private struct ModelProviderPickerSheet: View {
     /// one provider's key under another provider's account.
     private func reloadStoredKey() {
         apiKeyInput = settings.apiKey(forBaseURL: baseURL) ?? ""
+        hasAPIKey = settings.hasAPIKey(forBaseURL: baseURL)
         keySaveError = nil
     }
 
