@@ -2,7 +2,7 @@
 
 Static pages required for App Store submission. They must be live at
 **exactly** these URLs before submitting — App Review follows the links
-inside the app (`ai-chat/Settings/SupportInfo.swift`), and a 404 is a
+inside the app (`Parley/Settings/SupportInfo.swift`), and a 404 is a
 rejection risk under Guideline 2.1:
 
 | File | Must be served at |

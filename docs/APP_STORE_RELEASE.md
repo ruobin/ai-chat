@@ -11,7 +11,7 @@ renumbers sections between revisions.
 
 ### 1. `SupportInfo` — DONE
 
-`ai-chat/Settings/SupportInfo.swift` is filled in:
+`Parley/Settings/SupportInfo.swift` is filled in:
 
 | Value | Set to | Guideline |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ user-visible strings.
 ### App Privacy questionnaire
 
 Because there is no developer-operated backend, **"Data is not collected"** is
-accurate for our own entity. The bundled `ai-chat/PrivacyInfo.xcprivacy`
+accurate for our own entity. The bundled `Parley/PrivacyInfo.xcprivacy`
 matches this: no tracking, no tracking domains, no collected data types, and
 a single required-reason declaration for `UserDefaults` (`CA92.1`, app's own
 settings). Answer the questionnaire consistently with that file — a mismatch
@@ -142,10 +142,6 @@ Reviewers have no API keys, so say this explicitly:
 > must enter a birth year, and anyone under 17 is persistently blocked
 > from the app.
 >
-> The bundle identifier is `com.robert.demo-app` for legacy reasons: it was
-> kept deliberately so existing installs upgrade in place. This is a complete
-> production release, not a demo or beta build.
->
 > Users supply their own API keys and are billed directly by their chosen
 > provider. The app unlocks no features or content in exchange for payment,
 > so there is nothing sold through it.
@@ -153,9 +149,9 @@ Reviewers have no API keys, so say this explicitly:
 Attach a working API key for a cloud provider if you want that path tested.
 Without one, review only covers the on-device path.
 
-**Why the bundle ID note matters:** the literal string "demo-app" in a
-shipping identifier invites a Guideline 2.2 question about whether this is a
-trial build. Pre-empt it.
+The bundle ID is `com.robert.parley` (renamed from the pre-release
+`com.robert.demo-app` before anything shipped, so no upgrade path was
+broken and no "is this a demo?" review note is needed).
 
 ## Verify before every upload
 

@@ -8,10 +8,12 @@ local servers), and start chatting. Conversations are persisted locally with
 SwiftData.
 
 The app displays as **Parley** on the home screen (`CFBundleDisplayName`),
-and the Xcode project, target, and scheme are all named `ai-chat`. The bundle
-identifier is deliberately still `com.robert.demo-app`, so existing installs
-keep upgrading in place instead of being orphaned. App Store listing name:
-**Parley: Private AI Chat** (see `docs/APP_STORE_RELEASE.md`).
+and the Xcode project, target, and scheme are named `Parley` too (the Swift
+module stays `AIChat`). The bundle identifier is `com.robert.parley` —
+renamed from the original `com.robert.demo-app` before the first App Store
+release, while that still orphaned nothing but development installs. App
+Store listing name: **Parley: Private AI Chat** (see
+`docs/APP_STORE_RELEASE.md`).
 
 ## Features
 
@@ -53,8 +55,8 @@ keep upgrading in place instead of being orphaned. App Store listing name:
 
 ## Getting started
 
-1. Open `ai-chat.xcodeproj` in Xcode.
-2. Build and run the `ai-chat` scheme on a simulator or device. First
+1. Open `Parley.xcodeproj` in Xcode.
+2. Build and run the `Parley` scheme on a simulator or device. First
    launch asks for a birth year (the 17+ age gate) before anything else.
 3. Zero-config option: in Settings, pick the **Apple Intelligence** preset —
    no key needed on a capable device. Otherwise pick a provider preset,
@@ -67,7 +69,7 @@ provider (except Apple Intelligence, which needs none).
 ## Project layout
 
 ```
-ai-chat/
+Parley/
   App/
     AIChatApp.swift     App entry point, SwiftData ModelContainer setup
   Models/
@@ -92,9 +94,9 @@ ai-chat/
     Markdown/
       MarkdownContent.swift  Markdown block parser, citations, link safety
       MarkdownText.swift     SwiftUI renderer for parsed blocks
-  Assets.xcassets, Info.plist, ai-chat.entitlements
-ai-chatTests/            Unit test target (Swift Testing)
-ai-chatUITests/          UI test target (XCTest)
+  Assets.xcassets, Info.plist, Parley.entitlements
+ParleyTests/            Unit test target (Swift Testing)
+ParleyUITests/          UI test target (XCTest)
 docs/
   ARCHITECTURE.md         Component map, data flow, known gaps
   APP_STORE_RELEASE.md    Submission checklist, listing copy, review notes
@@ -105,7 +107,7 @@ website/
 
 The Xcode target uses a synchronized root group, so these folders are
 picked up automatically — adding or moving a `.swift` file under
-`ai-chat/` needs no `project.pbxproj` edit.
+`Parley/` needs no `project.pbxproj` edit.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a deeper look at how
 the pieces fit together.
@@ -115,11 +117,11 @@ the pieces fit together.
 Run tests from Xcode (`Cmd+U`) or:
 
 ```sh
-xcodebuild test -project ai-chat.xcodeproj -scheme ai-chat \
+xcodebuild test -project Parley.xcodeproj -scheme Parley \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-`ai-chatTests` covers `ChatSettings` temperature persistence, the Apple
+`ParleyTests` covers `ChatSettings` temperature persistence, the Apple
 Intelligence preset (sentinel detection, transcript construction), the
 `AgeGate` policy (pass/block boundaries, undeclared state), and
 (currently disabled — see commit history) per-provider key/model scoping,
@@ -129,7 +131,7 @@ Intelligence preset (sentinel detection, transcript construction), the
 ## Security notes
 
 - API keys are stored in the Keychain (`kSecAttrAccessibleAfterFirstUnlock`)
-  under service `com.demo-app.byok`, scoped per provider base URL.
+  under service `com.robert.parley.byok`, scoped per provider base URL.
 - Keys are sent only as the `Authorization: Bearer <key>` header on requests
   to the base URL you configure. No key is logged or transmitted elsewhere.
 - The Apple Intelligence provider never touches the network or a key —

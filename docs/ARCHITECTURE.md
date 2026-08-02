@@ -2,7 +2,7 @@
 
 ## Overview
 
-Parley (Xcode project/target/scheme name: `ai-chat`, Swift module `AIChat`)
+Parley (Xcode project/target/scheme name: `Parley`, Swift module `AIChat`)
 is a single-target
 SwiftUI iOS app. It has no backend of its own — it's a thin client over two
 kinds of providers: Apple Intelligence's on-device model (via the
@@ -248,8 +248,9 @@ Key design points:
 
 A minimal wrapper around the Keychain Services API (`SecItemAdd` /
 `SecItemUpdate` / `SecItemCopyMatching` / `SecItemDelete`) scoped to a
-single service identifier (`com.demo-app.byok` — kept from the app's original
-name so existing saved keys stay readable). Only the API key is
+single service identifier (`com.robert.parley.byok` — renamed from the
+original `com.demo-app.byok` before the first release; keep it stable from
+now on, since renaming orphans saved keys). Only the API key is
 stored here; everything else lives in `UserDefaults` via `ChatSettings`.
 Accessibility is `kSecAttrAccessibleAfterFirstUnlock`, so the app can send
 requests in the background (e.g. from a Live Activity or notification
@@ -446,7 +447,7 @@ place yet.
 
 ## Known gaps / suggested next steps
 
-- **Test coverage**: `ai-chatTests` covers `ChatSettings` temperature
+- **Test coverage**: `ParleyTests` covers `ChatSettings` temperature
   persistence (including the 0.0-survives-relaunch case), the `AgeGate`
   policy (pass/block boundaries at 17, undeclared state, year range),
   plus (currently

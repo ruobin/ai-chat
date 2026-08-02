@@ -6,8 +6,9 @@ listing copy).
 
 ## Where things stand
 
-The app has been rebranded **Parley** (display name only — bundle ID
-stays `com.robert.demo-app` deliberately, see below), given a new icon,
+The app has been fully renamed **Parley** — display name, bundle ID
+(`com.robert.parley`), Xcode project/target/scheme, source folders, and
+Keychain service — given a new icon,
 and **all code-side compliance work is done**: support info filled, age
 gate built, known bugs fixed, privacy/support pages written. What
 remains is hosting the two web pages and the App Store Connect work,
@@ -39,18 +40,20 @@ both of which only the account owner can do. See "Next steps".
     Dark: charcoal, gradient bubble. Tinted: grayscale on black.
   - Generated deterministically by `scripts/make-icon.swift`
     (CoreGraphics, no alpha). Regenerate with:
-    `swift scripts/make-icon.swift ai-chat/Assets.xcassets/AppIcon.appiconset`
+    `swift scripts/make-icon.swift Parley/Assets.xcassets/AppIcon.appiconset`
   - All three PNGs verified 1024×1024, `hasAlpha: no` via `sips`.
 - **Listing copy** (name, subtitle, description, keywords, promo text)
   written into `APP_STORE_RELEASE.md` under "Listing copy".
 
 ## Deliberate decisions (do not "fix" these)
 
-- **Bundle ID stays `com.robert.demo-app`** — changing it orphans
-  existing installs and their data. Review notes pre-empt the 2.2
-  "is this a demo?" question. Commented in `project.pbxproj`.
-- **Keychain service stays `"com.demo-app.byok"`**
-  (`Services/KeychainStore.swift:27`) — renaming orphans saved keys.
+- **Bundle ID is `com.robert.parley`** — renamed from
+  `com.robert.demo-app` before the first release (2026-08-03), while
+  only development installs existed to orphan. Now that it's headed to
+  the store, never change it again.
+- **Keychain service is `"com.robert.parley.byok"`**
+  (`Services/KeychainStore.swift`) — renamed at the same time and for
+  the same reason; renaming it after release orphans saved keys.
 - **Zero SPM dependencies** — deliberate; keep it that way.
 - **First-run default** (`Settings/ChatSettings.swift`, init
   ~:100-113): if no stored base URL and Apple Intelligence is
@@ -63,7 +66,7 @@ both of which only the account owner can do. See "Next steps".
   `https://parley.ai-dictionary.org/privacy`, `.../support`. Support
   section and Report action now visible.
 - **Age gate built** (Guideline 4.7.5): `Settings/AgeGate.swift`
-  (policy, unit-tested in `ai-chatTests/AgeGateTests.swift`) +
+  (policy, unit-tested in `ParleyTests/AgeGateTests.swift`) +
   `Views/AgeGateView.swift` (non-dismissable full-screen cover,
   birth-year wheel, persistent under-17 block). Wired in
   `Views/ContentView.swift`; the first-run Settings sheet now waits
@@ -111,11 +114,11 @@ ID, which it usually does.)
 2. **Host the two pages** at `https://parley.ai-dictionary.org/privacy`
    and `/support` (files in `website/`). Must be live before
    submission — App Review follows the in-app links.
-2. **Verify on a device/simulator** — age gate flow, Markdown
+3. **Verify on a device/simulator** — age gate flow, Markdown
    rendering, and the mic/web-search button fix have only been
    verified at build/logic level. Run the "Verify before every
    upload" checklist in `APP_STORE_RELEASE.md`.
-3. **App Store Connect**: create the app record, paste the listing
+4. **App Store Connect**: create the app record, paste the listing
    copy, screenshots, privacy questionnaire ("Data is not
    collected"), age rating, review notes (all drafted in
    `APP_STORE_RELEASE.md`), archive and submit.
@@ -125,21 +128,21 @@ ID, which it usually does.)
 ```sh
 # Device build (no signing)
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild -project ai-chat.xcodeproj -scheme ai-chat \
+  xcodebuild -project Parley.xcodeproj -scheme Parley \
   -destination 'generic/platform=iOS' -configuration Debug build \
   CODE_SIGNING_ALLOWED=NO
 
 # Test build
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcodebuild -project ai-chat.xcodeproj -scheme ai-chat \
+  xcodebuild -project Parley.xcodeproj -scheme Parley \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   build-for-testing
 ```
 
 Notes: `xcode-select` points at CommandLineTools, hence the
-`DEVELOPER_DIR` prefix. Project/target/scheme are `ai-chat`, module is
+`DEVELOPER_DIR` prefix. Project/target/scheme are `Parley`, module is
 `AIChat`. The target uses a file-system-synchronized group — new files
-under `ai-chat/` are picked up with no pbxproj edits.
+under `Parley/` are picked up with no pbxproj edits.
 
 ## File map (release-relevant)
 
@@ -147,10 +150,10 @@ under `ai-chat/` are picked up with no pbxproj edits.
 | --- | --- |
 | `docs/APP_STORE_RELEASE.md` | Submission checklist, listing copy, review notes |
 | `scripts/make-icon.swift` | Deterministic icon generator |
-| `ai-chat/Settings/SupportInfo.swift` | Placeholder contact/policy values — fill before shipping |
-| `ai-chat/Settings/ChatSettings.swift` | First-run defaults, provider presets |
-| `ai-chat/Views/ContentView.swift` | First-run gate; where the age gate goes |
-| `ai-chat/PrivacyInfo.xcprivacy` | Privacy manifest (verified present in built bundle) |
-| `ai-chat/Info.plist` | Mic string, encryption exemption |
-| `ai-chat/Services/WebResearchService.swift` | 429 retry bug to fix |
-| `ai-chat/Models/Message.swift` | Codable isolation warnings to fix |
+| `Parley/Settings/SupportInfo.swift` | Placeholder contact/policy values — fill before shipping |
+| `Parley/Settings/ChatSettings.swift` | First-run defaults, provider presets |
+| `Parley/Views/ContentView.swift` | First-run gate; where the age gate goes |
+| `Parley/PrivacyInfo.xcprivacy` | Privacy manifest (verified present in built bundle) |
+| `Parley/Info.plist` | Mic string, encryption exemption |
+| `Parley/Services/WebResearchService.swift` | 429 retry bug to fix |
+| `Parley/Models/Message.swift` | Codable isolation warnings to fix |
