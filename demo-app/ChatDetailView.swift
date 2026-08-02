@@ -40,9 +40,9 @@ struct ChatDetailView: View {
                             .foregroundStyle(.primary)
                             .lineLimit(1)
                         HStack(spacing: 3) {
-                            Text(settings.detectedPreset.label)
+                            Text(ProviderPreset.detect(from: conversation.effectiveBaseURL).label)
                             Text("·")
-                            Text(settings.modelName)
+                            Text(conversation.effectiveModelName)
                         }
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -70,7 +70,7 @@ struct ChatDetailView: View {
             }
         }
         .sheet(isPresented: $showModelPicker) {
-            ModelProviderPickerSheet()
+            ModelProviderPickerSheet(conversation: conversation)
         }
         .alert(
             "Error",
@@ -159,7 +159,11 @@ struct ChatDetailView: View {
         Task { @MainActor in
             do {
                 let providerMessages = buildProviderMessages()
-                try await service.streamCompletion(messages: providerMessages) { token in
+                try await service.streamCompletion(
+                    baseURL: conversation.effectiveBaseURL,
+                    model: conversation.effectiveModelName,
+                    messages: providerMessages
+                ) { token in
                     streamingContent += token
                 }
                 let assistant = Message(role: .assistant, content: streamingContent)
@@ -368,12 +372,20 @@ private struct BubbleShape: Shape {
 }
 
 /// Lightweight sheet for switching provider/model directly from the chat
-/// page, without diving into full Settings. Mirrors the provider/model
-/// pickers in `SettingsView` but scoped to just those two concerns.
+/// page, without diving into full Settings. Edits `conversation`'s own
+/// provider/model override (`Conversation.setProviderOverride`), so changes
+/// here only affect this conversation — other conversations, and the
+/// global default used for brand-new ones, are untouched. Mirrors the
+/// provider/model pickers in `SettingsView` but scoped to just this
+/// conversation.
 private struct ModelProviderPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var settings = ChatSettings.shared
+    let conversation: Conversation
+
+    private let settings = ChatSettings.shared
     @State private var preset: ProviderPreset
+    @State private var baseURL: String
+    @State private var modelName: String
 
     @State private var availableModels: [ProviderModel] = []
     @State private var isFetchingModels: Bool = false
@@ -381,10 +393,16 @@ private struct ModelProviderPickerSheet: View {
 
     private let service = ChatService()
 
-    init() {
-        let s = ChatSettings.shared
-        let resolved = ProviderPreset.allCases.first { $0.defaultBaseURL == s.baseURLString } ?? .custom
-        _preset = State(initialValue: resolved)
+    init(conversation: Conversation) {
+        self.conversation = conversation
+        let url = conversation.effectiveBaseURL
+        _baseURL = State(initialValue: url)
+        _modelName = State(initialValue: conversation.effectiveModelName)
+        _preset = State(initialValue: ProviderPreset.detect(from: url))
+    }
+
+    private var hasAPIKey: Bool {
+        settings.hasAPIKey(forBaseURL: baseURL)
     }
 
     var body: some View {
@@ -397,17 +415,24 @@ private struct ModelProviderPickerSheet: View {
                         }
                     }
                     .onChange(of: preset) { _, new in
-                        settings.applyPreset(new)
+                        if !new.defaultBaseURL.isEmpty {
+                            baseURL = new.defaultBaseURL
+                        }
+                        modelName = settings.rememberedModel(forBaseURL: baseURL) ?? new.defaultModel
                         availableModels = []
                         fetchModelsError = nil
+                        applyChanges()
                     }
                     if preset == .custom {
-                        TextField("Base URL", text: $settings.baseURLString)
+                        TextField("Base URL", text: $baseURL)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                             .keyboardType(.URL)
+                            .onChange(of: baseURL) { _, _ in
+                                applyChanges()
+                            }
                     }
-                    if !settings.hasAPIKey && !preset.allowsEmptyKey {
+                    if !hasAPIKey && !preset.allowsEmptyKey {
                         Label("No API key set for \(preset.label). Open full Settings to add one.", systemImage: "exclamationmark.triangle")
                             .font(.footnote)
                             .foregroundStyle(.orange)
@@ -415,9 +440,12 @@ private struct ModelProviderPickerSheet: View {
                 }
 
                 Section {
-                    TextField("Model name", text: $settings.modelName)
+                    TextField("Model name", text: $modelName)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .onChange(of: modelName) { _, _ in
+                            applyChanges()
+                        }
 
                     Button {
                         Task { await fetchModels() }
@@ -442,13 +470,13 @@ private struct ModelProviderPickerSheet: View {
                     if !availableModels.isEmpty {
                         ForEach(availableModels, id: \.id) { model in
                             Button {
-                                settings.modelName = model.id
+                                modelName = model.id
                             } label: {
                                 HStack {
                                     Text(model.id)
                                         .foregroundStyle(.primary)
                                     Spacer()
-                                    if settings.modelName == model.id {
+                                    if modelName == model.id {
                                         Image(systemName: "checkmark")
                                             .foregroundStyle(Color.accentColor)
                                     }
@@ -458,13 +486,13 @@ private struct ModelProviderPickerSheet: View {
                     } else if !preset.suggestedModels.isEmpty {
                         ForEach(preset.suggestedModels, id: \.self) { model in
                             Button {
-                                settings.modelName = model
+                                modelName = model
                             } label: {
                                 HStack {
                                     Text(model)
                                         .foregroundStyle(.primary)
                                     Spacer()
-                                    if settings.modelName == model {
+                                    if modelName == model {
                                         Image(systemName: "checkmark")
                                             .foregroundStyle(Color.accentColor)
                                     }
@@ -475,7 +503,7 @@ private struct ModelProviderPickerSheet: View {
                 } header: {
                     Text("Model")
                 } footer: {
-                    Text("Applies to new messages sent in this conversation onward.")
+                    Text("Only affects this conversation — other conversations and the default for new ones are unchanged.")
                         .font(.footnote)
                 }
             }
@@ -489,12 +517,21 @@ private struct ModelProviderPickerSheet: View {
         }
     }
 
+    /// Persists the current `baseURL`/`modelName` onto `conversation`, and
+    /// also updates the provider-level "last used model" memory so a
+    /// brand-new conversation (or the global Settings screen) offers this
+    /// same model next time this provider is selected.
+    private func applyChanges() {
+        conversation.setProviderOverride(baseURL: baseURL, model: modelName)
+        settings.rememberModel(modelName, forBaseURL: baseURL)
+    }
+
     private func fetchModels() async {
         isFetchingModels = true
         fetchModelsError = nil
         defer { isFetchingModels = false }
         do {
-            availableModels = try await service.fetchModels()
+            availableModels = try await service.fetchModels(baseURL: baseURL)
         } catch {
             availableModels = []
             fetchModelsError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

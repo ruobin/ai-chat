@@ -92,9 +92,13 @@ struct ChatService {
         return true
     }
 
-    private func makeRequestBody(messages: [ProviderChatMessage], includeTemperature: Bool) throws -> Data {
+    private func makeRequestBody(
+        model: String,
+        messages: [ProviderChatMessage],
+        includeTemperature: Bool
+    ) throws -> Data {
         let body = ProviderRequest(
-            model: settings.modelName,
+            model: model,
             messages: messages,
             temperature: includeTemperature ? settings.temperature : nil,
             stream: true
@@ -102,19 +106,27 @@ struct ChatService {
         return try JSONEncoder().encode(body)
     }
 
-    /// Streams a chat completion. `onToken` is invoked for each incremental
+    /// Streams a chat completion against `baseURL` using `model` and that
+    /// provider's own stored API key, independent of whatever
+    /// `settings.baseURLString`/`modelName` are currently set to. This lets
+    /// each `Conversation` stream against its own remembered provider/model
+    /// (see `Conversation.effectiveBaseURL`/`effectiveModelName`) without
+    /// mutating (or being affected by concurrent mutation of) the global
+    /// settings singleton. `onToken` is invoked for each incremental
     /// content chunk as it arrives from the provider.
     func streamCompletion(
+        baseURL: String,
+        model: String,
         messages: [ProviderChatMessage],
         onToken: @escaping @Sendable (String) async -> Void
     ) async throws {
-        let apiKey = settings.apiKey ?? ""
-        let preset = settings.detectedPreset
+        let apiKey = settings.apiKey(forBaseURL: baseURL) ?? ""
+        let preset = ProviderPreset.detect(from: baseURL)
         let requiresKey = !preset.allowsEmptyKey
         if requiresKey && apiKey.isEmpty {
             throw ChatProviderError.missingAPIKey
         }
-        guard let base = URL(string: settings.baseURLString) else {
+        guard let base = URL(string: baseURL) else {
             throw ChatProviderError.invalidURL
         }
         let url = base.appendingPathComponent("chat/completions")
@@ -127,11 +139,11 @@ struct ChatService {
                 req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             }
             req.timeoutInterval = 120
-            req.httpBody = try makeRequestBody(messages: messages, includeTemperature: includeTemperature)
+            req.httpBody = try makeRequestBody(model: model, messages: messages, includeTemperature: includeTemperature)
             return req
         }
 
-        var includeTemperature = Self.modelSupportsCustomTemperature(settings.modelName)
+        var includeTemperature = Self.modelSupportsCustomTemperature(model)
         var req = try makeRequest(includeTemperature: includeTemperature)
 
         var (bytes, response) = try await URLSession.shared.bytes(for: req)
@@ -187,16 +199,20 @@ struct ChatService {
         }
     }
 
-    /// Fetches the list of models available from the configured provider via
-    /// the standard `GET /models` endpoint, sorted alphabetically by id.
-    func fetchModels() async throws -> [ProviderModel] {
-        let apiKey = settings.apiKey ?? ""
-        let preset = settings.detectedPreset
+    /// Fetches the list of models available from `baseURL` (defaulting to
+    /// the global `settings.baseURLString` if not specified) via the
+    /// standard `GET /models` endpoint, sorted alphabetically by id. Uses
+    /// that base URL's own stored API key, independent of which provider
+    /// the global settings currently point at.
+    func fetchModels(baseURL: String? = nil) async throws -> [ProviderModel] {
+        let baseURL = baseURL ?? settings.baseURLString
+        let apiKey = settings.apiKey(forBaseURL: baseURL) ?? ""
+        let preset = ProviderPreset.detect(from: baseURL)
         let requiresKey = !preset.allowsEmptyKey
         if requiresKey && apiKey.isEmpty {
             throw ChatProviderError.missingAPIKey
         }
-        guard let base = URL(string: settings.baseURLString) else {
+        guard let base = URL(string: baseURL) else {
             throw ChatProviderError.invalidURL
         }
         let url = base.appendingPathComponent("models")

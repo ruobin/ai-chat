@@ -93,3 +93,85 @@ struct ChatSettingsAPIKeyScopingTests {
         #expect(KeychainStore.read(for: "api-key") == nil, "legacy shared key should be deleted after migrating")
     }
 }
+
+/// Covers `ProviderPreset.detect(from:)`'s exact-match-or-custom behavior.
+struct ProviderPresetDetectionTests {
+    @Test func detectsKnownPresetsByExactBaseURL() {
+        #expect(ProviderPreset.detect(from: "https://api.openai.com/v1") == .openAI)
+        #expect(ProviderPreset.detect(from: "https://api.anthropic.com/v1") == .anthropic)
+    }
+
+    @Test func fallsBackToCustomForUnrecognizedOrModifiedURLs() {
+        #expect(ProviderPreset.detect(from: "https://api.openai.com/v1/") == .custom, "a trailing slash makes it no longer an exact match")
+        #expect(ProviderPreset.detect(from: "https://my-self-hosted-llm.example.com/v1") == .custom)
+        #expect(ProviderPreset.detect(from: "") == .custom)
+    }
+}
+
+/// Covers `Conversation`'s per-conversation provider/model override and its
+/// fallback to the global `ChatSettings.shared` default. Since
+/// `Conversation.effectiveBaseURL`/`effectiveModelName` read the real
+/// `ChatSettings.shared` singleton (not an injectable instance), these tests
+/// snapshot and restore its `baseURLString`/`modelName` around each test and
+/// run serialized to avoid racing each other over that shared global state.
+@Suite(.serialized)
+struct ConversationProviderOverrideTests {
+    private func withGlobalDefault<T>(baseURL: String, model: String, _ body: () throws -> T) rethrows -> T {
+        let settings = ChatSettings.shared
+        let savedURL = settings.baseURLString
+        let savedModel = settings.modelName
+        settings.baseURLString = baseURL
+        settings.modelName = model
+        defer {
+            settings.baseURLString = savedURL
+            settings.modelName = savedModel
+        }
+        return try body()
+    }
+
+    @Test func newConversationSnapshotsGlobalDefaultAtCreationTime() throws {
+        try withGlobalDefault(baseURL: "https://snapshot-test.example/v1", model: "snapshot-model") {
+            let convo = Conversation()
+            #expect(convo.effectiveBaseURL == "https://snapshot-test.example/v1")
+            #expect(convo.effectiveModelName == "snapshot-model")
+
+            // Changing the global default afterward must not retroactively
+            // change an already-created conversation.
+            ChatSettings.shared.baseURLString = "https://changed-later.example/v1"
+            ChatSettings.shared.modelName = "changed-later-model"
+            #expect(convo.effectiveBaseURL == "https://snapshot-test.example/v1")
+            #expect(convo.effectiveModelName == "snapshot-model")
+        }
+    }
+
+    @Test func legacyConversationWithNoOverrideTracksLiveGlobalDefault() throws {
+        try withGlobalDefault(baseURL: "https://legacy-tracks-global.example/v1", model: "legacy-model-1") {
+            let convo = Conversation()
+            // Simulate a pre-existing row from before per-conversation
+            // overrides existed: no override recorded.
+            convo.baseURLOverride = nil
+            convo.modelNameOverride = nil
+
+            #expect(convo.effectiveBaseURL == "https://legacy-tracks-global.example/v1")
+            #expect(convo.effectiveModelName == "legacy-model-1")
+
+            ChatSettings.shared.modelName = "legacy-model-2"
+            #expect(convo.effectiveModelName == "legacy-model-2", "a conversation with no override should keep tracking live global changes, matching pre-override behavior")
+        }
+    }
+
+    @Test func settingOverrideIsolatesFromOtherConversationsAndGlobalDefault() throws {
+        try withGlobalDefault(baseURL: "https://shared-default.example/v1", model: "shared-model") {
+            let convoA = Conversation()
+            let convoB = Conversation()
+
+            convoA.setProviderOverride(baseURL: "https://provider-x.example/v1", model: "model-x")
+
+            #expect(convoA.effectiveBaseURL == "https://provider-x.example/v1")
+            #expect(convoA.effectiveModelName == "model-x")
+            #expect(convoB.effectiveBaseURL == "https://shared-default.example/v1", "conversation B's override must be unaffected by conversation A's change")
+            #expect(convoB.effectiveModelName == "shared-model")
+            #expect(ChatSettings.shared.baseURLString == "https://shared-default.example/v1", "the global default must be unaffected by a per-conversation override")
+        }
+    }
+}

@@ -66,9 +66,7 @@ final class ChatSettings {
     /// Best-effort detection of which preset the current base URL matches.
     /// Falls back to `.custom` so the UI shows "Custom" for unknown endpoints.
     var detectedPreset: ProviderPreset {
-        ProviderPreset.allCases.first { preset in
-            !preset.defaultBaseURL.isEmpty && preset.defaultBaseURL == baseURLString
-        } ?? .custom
+        ProviderPreset.detect(from: baseURLString)
     }
 
     private let defaults: UserDefaults
@@ -153,6 +151,24 @@ final class ChatSettings {
         } else if !preset.defaultModel.isEmpty {
             modelName = preset.defaultModel
         }
+    }
+
+    /// The model last used with `baseURL`, if any, independent of which
+    /// provider/conversation is currently active. Used when building a
+    /// picker for a specific conversation's override, so it can default to
+    /// the same "last used with this provider" model that `applyPreset`
+    /// would pick for the global settings.
+    func rememberedModel(forBaseURL baseURL: String) -> String? {
+        modelsByProvider[normalizedBaseURL(baseURL)]
+    }
+
+    /// Records `model` as the last-used model for `baseURL`, without
+    /// affecting the current global `baseURLString`/`modelName`. Used when a
+    /// conversation-scoped picker changes a conversation's model, so that
+    /// choice is also remembered as the provider-level default for next
+    /// time (e.g. a brand-new conversation, or the global Settings screen).
+    func rememberModel(_ model: String, forBaseURL baseURL: String) {
+        modelsByProvider[normalizedBaseURL(baseURL)] = model
     }
 
     private func normalizedBaseURL(_ baseURL: String) -> String {
@@ -251,6 +267,16 @@ enum ProviderPreset: String, CaseIterable, Identifiable {
     /// Providers that don't require an API key.
     var allowsEmptyKey: Bool {
         self == .ollama || self == .custom
+    }
+
+    /// Best-effort detection of which preset a base URL matches by exact
+    /// string equality with `defaultBaseURL`, falling back to `.custom` for
+    /// unrecognized endpoints (including edited variants of a known
+    /// endpoint, e.g. with a trailing slash added).
+    static func detect(from baseURL: String) -> ProviderPreset {
+        allCases.first { preset in
+            !preset.defaultBaseURL.isEmpty && preset.defaultBaseURL == baseURL
+        } ?? .custom
     }
 }
 

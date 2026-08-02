@@ -22,10 +22,7 @@ struct SettingsView: View {
 
     init() {
         let s = ChatSettings.shared
-        let resolved = ProviderPreset.allCases.first { preset in
-            preset.defaultBaseURL == s.baseURLString
-        } ?? .custom
-        _preset = State(initialValue: resolved)
+        _preset = State(initialValue: ProviderPreset.detect(from: s.baseURLString))
         _apiKeyInput = State(initialValue: "")
     }
 
@@ -94,7 +91,7 @@ struct SettingsView: View {
     }
 
     private var providerSection: some View {
-        Section("Provider") {
+        Section {
             Picker("Preset", selection: $preset) {
                 ForEach(ProviderPreset.allCases) { p in
                     Text(p.label).tag(p)
@@ -122,6 +119,11 @@ struct SettingsView: View {
                 }
                 .disabled(settings.baseURLString.isEmpty && settings.modelName.isEmpty)
             }
+        } header: {
+            Text("Provider")
+        } footer: {
+            Text("This is the default provider for new conversations. Change an individual conversation's provider from its own model picker without affecting this default.")
+                .font(.footnote)
         }
     }
 
@@ -190,7 +192,7 @@ struct SettingsView: View {
         } header: {
             Text("Model")
         } footer: {
-            Text("Fetch the live list from your provider, tap a suggestion, or type your own model name.")
+            Text("Fetch the live list from your provider, tap a suggestion, or type your own model name. This is the default used for new conversations — existing conversations keep whatever model they were started with (or last switched to individually) unless you change it from within that conversation.")
                 .font(.footnote)
         }
     }
@@ -250,7 +252,7 @@ struct SettingsView: View {
     }
 
     private var aboutSection: some View {
-        Section("About") {
+        Section {
             LabeledContent("Provider") {
                 Text(settings.detectedPreset.label)
                     .font(.footnote)
@@ -273,6 +275,8 @@ struct SettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(settings.hasAPIKey ? .green : .secondary)
             }
+        } header: {
+            Text("Default for new conversations")
         }
     }
 

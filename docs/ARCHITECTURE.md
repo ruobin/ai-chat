@@ -46,9 +46,11 @@ persisted separately in the Keychain.
 
 ### Data layer (SwiftData)
 
-- **`Conversation`** — id, title, timestamps, and a `@Relationship` to its
-  `Message`s with cascade delete. `sortedMessages` and `preview` are
-  computed conveniences used by the UI.
+- **`Conversation`** — id, title, timestamps, a `@Relationship` to its
+  `Message`s with cascade delete, and its own provider/model override
+  (`baseURLOverride` / `modelNameOverride`, both optional — see
+  "Per-conversation provider/model" below). `sortedMessages` and `preview`
+  are computed conveniences used by the UI.
 - **`Message`** — id, role (`system` / `user` / `assistant`, stored as a raw
   string for SwiftData compatibility), content, timestamp, and a back-link
   to its conversation.
@@ -57,6 +59,10 @@ Both models are plain `@Model` classes wired into a single `ModelContainer`
 created once in `demo_appApp.swift` and injected via `.modelContainer(...)`.
 There is currently no migration plan defined; schema changes will need a
 `SchemaMigrationPlan` once the model shape changes in a shipped version.
+`baseURLOverride`/`modelNameOverride` were added as optional properties
+specifically so existing rows lightweight-migrate to `nil` (meaning
+"inherit the global default", preserving old behavior) with no explicit
+migration code needed.
 
 ### Settings (`ChatSettings`)
 
@@ -107,6 +113,44 @@ different services), but means renaming/retyping a custom base URL will
 appear to "lose" its key/model (they're still in storage under the old URL
 string, just not looked up anymore).
 
+#### Per-conversation provider/model
+
+Each `Conversation` can independently override which provider/model it
+sends requests to, via `baseURLOverride` / `modelNameOverride`
+(`Conversation.swift`). The override is optional and the fallback chain is:
+
+1. If both are set, `Conversation.effectiveBaseURL` /
+   `effectiveModelName` use them directly.
+2. If `nil` (the default for rows that predate this feature, and
+   momentarily during a `Conversation`'s own `init` before it snapshots —
+   see below), they fall back live to `ChatSettings.shared`, exactly
+   matching the old single-global-setting behavior.
+
+New conversations snapshot the *current* global default into their
+override at creation time (`Conversation.init`), so a later change to the
+global default in Settings does not retroactively change conversations
+that already exist — each conversation's provider/model is stable once
+created, the same way its message history is. Pre-existing conversations
+(created before this feature, with `nil` overrides) are the one case that
+keeps tracking the live global default indefinitely, until the user
+explicitly picks a model for them.
+
+`Conversation.setProviderOverride(baseURL:model:)` is the only way to
+change an existing conversation's override; it sets both fields together
+so a conversation can't end up with, say, an OpenAI base URL and an
+Anthropic model name. `ChatDetailView`'s `ModelProviderPickerSheet` calls
+this when the user picks a provider/model for a specific conversation, and
+also calls `ChatSettings.rememberModel(_:forBaseURL:)` so that choice is
+remembered at the provider level too (i.e. it becomes the default the next
+*new* conversation with that provider will start with, matching
+`applyPreset(_:)`'s per-provider model memory in `SettingsView`).
+
+`ChatService.streamCompletion` and `fetchModels` both take an explicit
+`baseURL`/`model` (rather than always reading `settings.baseURLString` /
+`settings.modelName`), so a conversation can stream against its own
+override without mutating — or racing against concurrent mutation of —
+the global `ChatSettings.shared` singleton.
+
 ### Networking (`ChatService`)
 
 `ChatService` builds a `POST {baseURL}/chat/completions` request with
@@ -156,14 +200,16 @@ again.
   `SettingsView` is presented automatically on first appearance.
 - **`ChatDetailView`** — owns the send/stream loop. On send, it appends a
   user `Message`, saves, then starts a `Task` that calls
-  `ChatService.streamCompletion`, appending tokens to a local
+  `ChatService.streamCompletion` with the conversation's own
+  `effectiveBaseURL`/`effectiveModelName`, appending tokens to a local
   `streamingContent` buffer (rendered as a separate "streaming bubble" while
   in flight) before committing the final text as an assistant `Message` on
   completion or as an inline error message on failure. The navigation bar
-  title area doubles as a button showing the active provider/model, which
-  opens `ModelProviderPickerSheet` — a scoped version of the provider/model
-  pickers from `SettingsView` — so users can switch models without leaving
-  the conversation.
+  title area shows this conversation's active provider/model and is
+  tappable to open `ModelProviderPickerSheet` — a scoped version of the
+  provider/model pickers from `SettingsView`, but editing the
+  conversation's own override (see "Per-conversation provider/model"
+  above) rather than the global default.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
   API key save/remove flow, a "Fetch available models" action that
@@ -223,23 +269,15 @@ truncation/summarization strategy in place yet.
 
 - **Test coverage**: `demo-appTests` now covers `ChatSettings`'
   per-provider API key isolation, model-per-provider recall via
-  `applyPreset(_:)`, and legacy shared-key migration. Still missing:
-  `ChatService` SSE parsing (given canned byte streams) and `KeychainStore`
-  round-trip save/read/delete in isolation.
+  `applyPreset(_:)`, legacy shared-key migration, `ProviderPreset.detect`,
+  and `Conversation`'s per-conversation override/fallback semantics. Still
+  missing: `ChatService` SSE parsing (given canned byte streams) and
+  `KeychainStore` round-trip save/read/delete in isolation.
 - **Schema migration**: no `VersionedSchema`/`SchemaMigrationPlan` exists
   yet for `Conversation`/`Message`; add one before the first schema change
   ships to users with existing data.
 - **Context length management**: long conversations are resent in full on
   every request with no truncation or summarization.
-- **Per-conversation model settings**: `ChatSettings` is a single global
-  singleton, so switching provider/model from `ModelProviderPickerSheet`
-  changes it for every conversation going forward, not just the one it was
-  opened from. Persisting a per-`Conversation` provider/model override
-  would let different chats use different models simultaneously. (Note:
-  as of the multi-provider key/model change, each *provider* does retain
-  its own last-used model — this gap is specifically about per-conversation
-  overrides, e.g. two open conversations using different models against the
-  same provider at once.)
 - **Custom base URL key/model "loss" on retyping**: keys and remembered
   models for the `.custom` preset are scoped to the exact base URL string.
   Editing a custom base URL (even fixing a typo) is indistinguishable from
