@@ -7,55 +7,52 @@ what only you can do. Guideline numbers refer to the
 Verify guideline text against the live page before submitting — Apple
 renumbers sections between revisions.
 
-## Blockers you must clear before archiving
+## Blockers — all cleared in code
 
-### 1. Fill in `SupportInfo` — required
+### 1. `SupportInfo` — DONE
 
-`ai-chat/Settings/SupportInfo.swift` ships with placeholders. Until they're
-replaced:
+`ai-chat/Settings/SupportInfo.swift` is filled in:
 
-- the **Support** section in Settings is hidden entirely, and
-- the **Report response** action on assistant replies does not appear.
-
-Both are compliance requirements, so the app is **not submittable** in this
-state:
-
-| Value | Why | Guideline |
+| Value | Set to | Guideline |
 | --- | --- | --- |
-| `contactEmail` | Published contact info, and the destination for content reports | 1.5, 4.7.1 |
-| `privacyPolicyURL` | Must be reachable in-app *and* entered in App Store Connect | 5.1.1(i) |
-| `supportURL` | App Store "Support URL" | 1.5 |
+| `contactEmail` | `ruobin.wang.us@gmail.com` | 1.5, 4.7.1 |
+| `privacyPolicyURL` | `https://dict.ai-dictionary.org/privacy` | 5.1.1(i) |
+| `supportURL` | `https://dict.ai-dictionary.org/support` | 5.1.1(i), 1.5 |
 
-The code deliberately hides these rows rather than shipping a dead `mailto:`
-or a 404, either of which is its own rejection risk under 2.1. `SupportInfo.isConfigured`
-is the single switch that gates them.
+`SupportInfo.isConfigured` is now true, so the Support section in Settings
+and the Report-response action are visible.
 
-### 2. Write the privacy policy
+### 2. Privacy policy — WRITTEN, needs hosting
 
-The app has **no developer backend** — nothing is collected by us. But it does
-send data to third parties *at the user's direction*, and Guideline 5.1.2(i)
-requires explicit disclosure "where personal data will be shared with third
-parties, including with third-party AI". The policy must name:
+`website/privacy.html` and `website/support.html` are ready to host. They
+must be live at **exactly** the URLs above (serve `privacy.html` at
+`/privacy`, `support.html` at `/support` on `dict.ai-dictionary.org`)
+**before submitting** — App Review follows the in-app links, and a 404 is a
+rejection under 2.1. The policy names every selectable provider, Brave
+Search (50-word/400-char cap, 90-day retention), the on-device-only Apple
+Intelligence path, local storage/Keychain details, and deletion, per
+Guideline 5.1.2(i).
 
-- Every provider the user can select: OpenAI, Anthropic, Google, DeepSeek,
-  xAI, OpenRouter, Ollama (local), and any custom endpoint the user enters.
-  Message content goes to whichever one is selected.
-- **Brave Search**, when the user arms web search for a message. Only that
-  message's text is sent, capped at 50 words / 400 characters with fenced
-  code blocks stripped. Brave documents query retention of up to 90 days.
-- **Apple Intelligence** sends nothing — generation is fully on-device.
-- What stays local: conversations in SwiftData on device, API keys in the
-  Keychain (`kSecAttrAccessibleAfterFirstUnlock`, not synced to iCloud).
-- Deletion: users delete conversations in-app; deleting the app removes
-  everything. There is no server-side copy to request deletion of.
+### 3. Age gate (4.7.5) — DONE
+
+First launch presents a non-dismissable birth-year gate
+(`Views/AgeGateView.swift`, policy in `Settings/AgeGate.swift`). 17+ passes;
+an under-age declaration persistently blocks the app. The declared year is
+stored only in UserDefaults (`ageGate.declaredBirthYear`). Mention it in the
+review notes.
 
 ## App Store Connect setup
 
 ### Listing copy — ready to paste
 
-**Name:** Parley
+**Name:** `Parley: Private AI Chat` (23 chars — several unrelated "Parley"
+and "Parley AI" apps already exist on the store, so the bare name is likely
+unavailable and the qualifier disambiguates in search results anyway; the
+home-screen display name stays just **Parley**).
 
-**Subtitle (30 chars max):** `Private AI Chat` (15 chars)
+**Subtitle (30 chars max):** `Your keys. Your conversations.` (30 chars —
+don't repeat the name's "Private AI Chat" in the subtitle; Apple ignores
+duplicated terms)
 
 **Category:** Productivity (matches `LSApplicationCategoryType`).
 
@@ -112,9 +109,8 @@ arbitrary web content, so a 4+ rating is not defensible. Rate it honestly for
 
 Guideline **4.7 explicitly covers chatbots**, and 4.7.5 requires a way to
 identify content exceeding the age rating plus an age restriction mechanism.
-The current build has **no age gate**. If review pushes back, the likely asks
-are a declared-age gate on first run and a way to restrict which providers a
-minor can reach. This is the largest remaining compliance gap.
+The build now has a **declared-age gate on first run** (17+, persistent
+under-age block) — point reviewers at it in the review notes.
 
 ### Review notes — write these
 
@@ -125,6 +121,10 @@ Reviewers have no API keys, so say this explicitly:
 > Intelligence–capable device running iOS 26.5+ with Apple Intelligence
 > enabled in Settings. To test a cloud provider instead, open Settings →
 > Provider, choose one, and paste an API key.
+>
+> Per Guideline 4.7.5, first launch presents a declared-age gate: users
+> must enter a birth year, and anyone under 17 is persistently blocked
+> from the app.
 >
 > The bundle identifier is `com.robert.demo-app` for legacy reasons: it was
 > kept deliberately so existing installs upgrade in place. This is a complete
@@ -143,8 +143,12 @@ trial build. Pre-empt it.
 
 ## Verify before every upload
 
+- [ ] `https://dict.ai-dictionary.org/privacy` and `/support` are **live**
+      and match `website/privacy.html` / `website/support.html`.
 - [ ] `SupportInfo.isConfigured` returns true — check Settings shows the
       Support section and a reply's context menu shows "Report response".
+- [ ] Clean install shows the age gate; a passing year proceeds, an
+      under-17 year blocks and stays blocked after relaunch.
 - [ ] Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`.
 - [ ] Archive with the Release configuration, then run the build once from
       the archive on a real device.
@@ -173,7 +177,6 @@ trial build. Pre-empt it.
 
 Judgement calls, not oversights:
 
-- **No age gate.** See 4.7.5 above. The most likely reason for a rejection.
 - **No automated content filtering.** Cloud providers apply their own
   moderation, and Apple Intelligence has on-device guardrails, but a
   self-hosted Ollama or custom endpoint has none, and the app does not filter

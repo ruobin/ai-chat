@@ -11,8 +11,13 @@ struct ContentView: View {
     @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
     @State private var selection: Conversation?
     @State private var showSettings: Bool = false
+    @AppStorage(AgeGate.birthYearKey) private var declaredBirthYear = 0
 
     private var settings: ChatSettings { .shared }
+
+    private var ageGatePassed: Bool {
+        AgeGate.passes(birthYear: declaredBirthYear)
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -23,14 +28,29 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
+        .fullScreenCover(isPresented: Binding(
+            get: { !ageGatePassed },
+            set: { _ in }
+        )) {
+            AgeGateView()
+        }
         .onAppear {
-            // First-run onboarding: auto-open Settings only when the active
-            // provider actually needs a key and doesn't have one. Keyless
-            // providers (Apple Intelligence, Ollama, custom) shouldn't be
-            // pestered on every launch.
-            if !settings.detectedPreset.allowsEmptyKey && !settings.hasAPIKey {
-                showSettings = true
-            }
+            maybeShowFirstRunSettings()
+        }
+        .onChange(of: declaredBirthYear) {
+            // The age gate dismisses itself by writing a passing birth year;
+            // only then may the first-run Settings sheet present, so the two
+            // never compete for the same presentation slot.
+            maybeShowFirstRunSettings()
+        }
+    }
+
+    /// First-run onboarding: auto-open Settings only when the active provider
+    /// actually needs a key and doesn't have one. Keyless providers (Apple
+    /// Intelligence, Ollama, custom) shouldn't be pestered on every launch.
+    private func maybeShowFirstRunSettings() {
+        if ageGatePassed && !settings.detectedPreset.allowsEmptyKey && !settings.hasAPIKey {
+            showSettings = true
         }
     }
 

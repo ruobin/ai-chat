@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parley — Support</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0 auto; max-width: 42rem; padding: 2rem 1.25rem 4rem;
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1c1c1e; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f2f2f7; background: #1c1c1e; }
+    a { color: #6cb2ff; }
+  }
+  h1 { font-size: 1.7rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; }
+  ul { padding-left: 1.25rem; }
+  li { margin: 0.35rem 0; }
+</style>
+</head>
+<body>
+<h1>Parley Support</h1>
+<p>Parley is a private, bring-your-own-key AI chat app for iOS.</p>
+
+<h2>Contact</h2>
+<p>Email <a href="mailto:ruobin.wang.us@gmail.com">ruobin.wang.us@gmail.com</a>
+for help, bug reports, feature requests, or to report a problematic AI
+response. Reports can also be sent directly from the app: touch and hold any
+assistant reply and choose <strong>Report response</strong>.</p>
+
+<h2>Do I need an API key?</h2>
+<p>Not on an Apple Intelligence–capable device — Parley defaults to Apple's
+on-device model, which is free, offline, and needs no account. To use a cloud
+model (OpenAI, Anthropic, Google, DeepSeek, xAI, OpenRouter, or a custom
+endpoint), open <strong>Settings → Provider</strong>, pick one, and paste an
+API key from that provider's website. You are billed by the provider
+directly; Parley adds no markup and has no subscription.</p>
+
+<h2>Why does a provider return an error?</h2>
+<ul>
+  <li>Check the API key is valid and has credit remaining with the provider.</li>
+  <li>Check the selected model name is one your key can access — use
+  <strong>Settings → Model → fetch models</strong> to list what your key
+  offers.</li>
+  <li>For Ollama or custom endpoints, confirm the server URL is reachable
+  from your device.</li>
+</ul>
+
+<h2>How does web search work?</h2>
+<p>Web search uses your own Brave Search API key (free tier available at
+brave.com/search/api). Arm the globe button for a message and the answer is
+grounded in current results with source links.</p>
+
+<h2>Where is my data?</h2>
+<p>Conversations stay on your device; keys stay in the iOS Keychain. See the
+<a href="https://dict.ai-dictionary.org/privacy">privacy policy</a> for the
+full picture.</p>
+</body>
+</html>

@@ -71,14 +71,14 @@ struct WebSource: Hashable, Identifiable, Sendable {
     let excerpt: String
 }
 
-struct PersistedWebSource: Codable, Hashable, Identifiable, Sendable {
+nonisolated struct PersistedWebSource: Codable, Hashable, Identifiable, Sendable {
     let id: Int
     let title: String
     let url: URL
     let domain: String
 }
 
-struct WebSourcesPayload: Codable, Sendable {
+nonisolated struct WebSourcesPayload: Codable, Sendable {
     let version: Int
     let sources: [PersistedWebSource]
 }
@@ -136,7 +136,7 @@ struct WebResearchService {
                 return data
             case 401, 403:
                 throw WebResearchError.invalidKey
-            case 429, 500..<600 where attempt == 0:
+            case 429 where attempt == 0, 500..<600 where attempt == 0:
                 try await Task.sleep(for: .milliseconds(500))
             case 429:
                 throw WebResearchError.rateLimited

@@ -7,10 +7,11 @@ preset or point it at a custom endpoint, paste in an API key (or skip it for
 local servers), and start chatting. Conversations are persisted locally with
 SwiftData.
 
-The app displays as **AI Chat** on the home screen (`CFBundleDisplayName`),
+The app displays as **Parley** on the home screen (`CFBundleDisplayName`),
 and the Xcode project, target, and scheme are all named `ai-chat`. The bundle
 identifier is deliberately still `com.robert.demo-app`, so existing installs
-keep upgrading in place instead of being orphaned.
+keep upgrading in place instead of being orphaned. App Store listing name:
+**Parley: Private AI Chat** (see `docs/APP_STORE_RELEASE.md`).
 
 ## Features
 

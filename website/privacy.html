@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parley — Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0 auto; max-width: 42rem; padding: 2rem 1.25rem 4rem;
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1c1c1e; background: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f2f2f7; background: #1c1c1e; }
+    a { color: #6cb2ff; }
+  }
+  h1 { font-size: 1.7rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; }
+  .updated { color: #8e8e93; font-size: 0.9rem; }
+  ul { padding-left: 1.25rem; }
+  li { margin: 0.35rem 0; }
+</style>
+</head>
+<body>
+<h1>Parley Privacy Policy</h1>
+<p class="updated">Effective August 3, 2026</p>
+
+<p>Parley is a bring-your-own-key AI chat app for iOS. It has <strong>no
+developer-operated backend</strong>: we run no servers, require no account,
+and collect no data about you. Everything described below happens either on
+your device or between your device and a service <em>you</em> choose and
+configure.</p>
+
+<h2>What we collect</h2>
+<p>Nothing. Parley contains no analytics, no tracking, no advertising SDKs,
+and no telemetry of any kind. We never see your conversations, your API keys,
+or anything else.</p>
+
+<h2>What stays on your device</h2>
+<ul>
+  <li><strong>Conversations</strong> are stored locally on your device using
+  Apple's SwiftData. They are never uploaded by us.</li>
+  <li><strong>API keys</strong> you enter are stored in the iOS Keychain
+  (accessible after first unlock, not synced to iCloud). They are sent only
+  as the authorization header on requests to the provider endpoint you
+  configured, and are never logged.</li>
+  <li><strong>Settings</strong>, including your declared birth year for the
+  age gate, are stored in the app's local preferences.</li>
+  <li><strong>Voice input</strong> is transcribed on-device by Apple's Speech
+  framework. Audio stays in memory and is never saved or uploaded; only the
+  text you choose to send follows the normal path of your selected
+  provider.</li>
+</ul>
+
+<h2>Data shared with third parties at your direction</h2>
+<p>When you send a message, its content (and the conversation context needed
+to answer) goes to the AI provider you selected. Parley supports:</p>
+<ul>
+  <li><strong>Apple Intelligence (on-device)</strong> — generation happens
+  entirely on your device. Nothing is sent over the network.</li>
+  <li><strong>Cloud providers</strong> — OpenAI, Anthropic, Google, DeepSeek,
+  xAI, and OpenRouter. Your message content is sent to the provider you
+  chose, using your own API key, under that provider's privacy policy and
+  data-retention terms. We add no identifiers of our own.</li>
+  <li><strong>Local or custom endpoints</strong> — Ollama or any
+  OpenAI-compatible server URL you enter. Content goes only to the endpoint
+  you configured.</li>
+</ul>
+<p>When you explicitly arm <strong>web search</strong> for a message, that
+message's text (capped at 50 words / 400 characters, with code blocks
+stripped) is sent to <strong>Brave Search</strong> using your own Brave API
+key. Brave documents query retention of up to 90 days. Search excerpts are
+used to ground the answer; Parley stores only the source title, domain, and
+URL alongside the reply — never the raw excerpts.</p>
+
+<h2>Deletion</h2>
+<p>Swipe to delete any conversation in the app. Deleting the app removes all
+conversations, settings, and keys from your device. Because we operate no
+servers, there is no server-side copy to request deletion of. For data sent
+to a provider you configured, deletion is governed by that provider's own
+policy and tools.</p>
+
+<h2>Children</h2>
+<p>Parley is rated 17+ and requires an age declaration on first launch.
+It is not directed at children, and we do not knowingly collect data from
+anyone (of any age).</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the new version will be posted at this URL with an
+updated effective date.</p>
+
+<h2>Contact</h2>
+<p>Questions, or a response you want to report? Email
+<a href="mailto:ruobin.wang.us@gmail.com">ruobin.wang.us@gmail.com</a>.</p>
+</body>
+</html>

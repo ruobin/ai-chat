@@ -8,8 +8,10 @@ listing copy).
 
 The app has been rebranded **Parley** (display name only — bundle ID
 stays `com.robert.demo-app` deliberately, see below), given a new icon,
-and taken through most of the compliance work. Remaining work is listed
-under "Next steps".
+and **all code-side compliance work is done**: support info filled, age
+gate built, known bugs fixed, privacy/support pages written. What
+remains is hosting the two web pages and the App Store Connect work,
+both of which only the account owner can do. See "Next steps".
 
 ## Done — committed and pushed (`origin main`)
 
@@ -55,34 +57,38 @@ under "Next steps".
   available → on-device preset (keyless, reviewer-friendly);
   otherwise OpenAI `gpt-4o-mini`. A stored value always wins.
 
-## Next steps, in order
+## Done — 2026-08-03 session
 
-1. **Age gate (17+), Guideline 4.7.5 — biggest compliance gap.**
-   Decision already made: build a declared-age gate now. First-run
-   screen with a birth-year picker, persist the declaration (likely
-   UserDefaults), block under-17 users. Wire it near the existing
-   first-run gate in `Views/ContentView.swift:26-34` (`onAppear`).
-   No `AgeGate*.swift` exists yet — build from scratch.
-2. **Fix known bugs** (pre-existing, flagged):
-   - `Services/WebResearchService.swift:139-141`:
-     `case 429, 500..<600 where attempt == 0` — the `where` binds only
-     the second pattern, so `case 429` is dead and rate-limited calls
-     never retry. Split into two cases or parenthesize.
-   - `Models/Message.swift:43,:63`: main-actor-isolated
-     `WebSourcesPayload` Codable conformance warning — a Swift 6
-     error-in-waiting. Make the payload `nonisolated`/`Sendable`.
-3. **Fill `Settings/SupportInfo.swift`** — BLOCKED on you:
-   real `contactEmail`, `privacyPolicyURL`, `supportURL`. Until then
-   the Support section and Report action are hidden and the app is
-   not submittable.
-4. **Write and host the privacy policy** — required content is
-   itemised in `APP_STORE_RELEASE.md` ("Write the privacy policy").
-5. **Verify on a device/simulator** — Markdown rendering and the
-   mic/web-search button fix have only been verified at build/logic
-   level, never visually. Also run the "Verify before every upload"
-   checklist in `APP_STORE_RELEASE.md`.
-6. **App Store Connect** (you only): create the app record, paste the
-   listing copy, screenshots, privacy questionnaire ("Data is not
+- **`Settings/SupportInfo.swift` filled**: `ruobin.wang.us@gmail.com`,
+  `https://dict.ai-dictionary.org/privacy`, `.../support`. Support
+  section and Report action now visible.
+- **Age gate built** (Guideline 4.7.5): `Settings/AgeGate.swift`
+  (policy, unit-tested in `ai-chatTests/AgeGateTests.swift`) +
+  `Views/AgeGateView.swift` (non-dismissable full-screen cover,
+  birth-year wheel, persistent under-17 block). Wired in
+  `Views/ContentView.swift`; the first-run Settings sheet now waits
+  for the gate to pass so the two never compete for presentation.
+- **Bugs fixed**: Brave 429 now retries once (`WebResearchService`
+  `where` clause applied to both patterns); `WebSourcesPayload` /
+  `PersistedWebSource` marked `nonisolated` (Codable isolation
+  warning gone).
+- **Privacy policy + support page written**: `website/privacy.html`,
+  `website/support.html` — self-contained, light/dark, ready to host.
+- **Store name decided**: `Parley: Private AI Chat` (bare "Parley" is
+  crowded/taken on the App Store); new 30-char subtitle. Listing copy
+  updated in `APP_STORE_RELEASE.md`.
+
+## Next steps, in order (account owner only)
+
+1. **Host the two pages** at `https://dict.ai-dictionary.org/privacy`
+   and `/support` (files in `website/`). Must be live before
+   submission — App Review follows the in-app links.
+2. **Verify on a device/simulator** — age gate flow, Markdown
+   rendering, and the mic/web-search button fix have only been
+   verified at build/logic level. Run the "Verify before every
+   upload" checklist in `APP_STORE_RELEASE.md`.
+3. **App Store Connect**: create the app record, paste the listing
+   copy, screenshots, privacy questionnaire ("Data is not
    collected"), age rating, review notes (all drafted in
    `APP_STORE_RELEASE.md`), archive and submit.
 

@@ -20,13 +20,13 @@ import Foundation
 
 enum SupportInfo {
     /// Address shown in Settings and used for content reports.
-    static let contactEmail = "REPLACE_ME@example.com"
+    static let contactEmail = "ruobin.wang.us@gmail.com"
 
     /// Must match the privacy policy URL entered in App Store Connect.
-    static let privacyPolicyURL = URL(string: "https://example.com/ai-chat/privacy")!
+    static let privacyPolicyURL = URL(string: "https://dict.ai-dictionary.org/privacy")!
 
     /// Public support page, used as the App Store "Support URL".
-    static let supportURL = URL(string: "https://example.com/ai-chat/support")!
+    static let supportURL = URL(string: "https://dict.ai-dictionary.org/support")!
 
     /// False while any placeholder above is still in place.
     static var isConfigured: Bool {
