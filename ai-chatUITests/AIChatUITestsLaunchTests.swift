@@ -1,13 +1,13 @@
 //
-//  demo_appUITestsLaunchTests.swift
-//  demo-appUITests
+//  AIChatUITestsLaunchTests.swift
+//  ai-chatUITests
 //
 //  Created by robert on 8/2/26.
 //
 
 import XCTest
 
-final class demo_appUITestsLaunchTests: XCTestCase {
+final class AIChatUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

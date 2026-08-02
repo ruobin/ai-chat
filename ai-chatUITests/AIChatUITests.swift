@@ -1,13 +1,13 @@
 //
-//  demo_appUITests.swift
-//  demo-appUITests
+//  AIChatUITests.swift
+//  ai-chatUITests
 //
 //  Created by robert on 8/2/26.
 //
 
 import XCTest
 
-final class demo_appUITests: XCTestCase {
+final class AIChatUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

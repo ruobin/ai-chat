@@ -2,7 +2,8 @@
 
 ## Overview
 
-AI Chat (Xcode project/target/scheme name: `demo-app`) is a single-target
+AI Chat (Xcode project/target/scheme name: `ai-chat`, Swift module `AIChat`)
+is a single-target
 SwiftUI iOS app. It has no backend of its own — it's a thin client over two
 kinds of providers: Apple Intelligence's on-device model (via the
 Foundation Models framework, iOS 26+), and any OpenAI-compatible
@@ -63,7 +64,7 @@ persisted separately in the Keychain.
   to its conversation.
 
 Both models are plain `@Model` classes wired into a single `ModelContainer`
-created once in `demo_appApp.swift` and injected via `.modelContainer(...)`.
+created once in `AIChatApp.swift` and injected via `.modelContainer(...)`.
 There is currently no migration plan defined; schema changes will need a
 `SchemaMigrationPlan` once the model shape changes in a shipped version.
 `baseURLOverride`/`modelNameOverride` were added as optional properties
@@ -247,7 +248,8 @@ Key design points:
 
 A minimal wrapper around the Keychain Services API (`SecItemAdd` /
 `SecItemUpdate` / `SecItemCopyMatching` / `SecItemDelete`) scoped to a
-single service identifier (`com.demo-app.byok`). Only the API key is
+single service identifier (`com.demo-app.byok` — kept from the app's original
+name so existing saved keys stay readable). Only the API key is
 stored here; everything else lives in `UserDefaults` via `ChatSettings`.
 Accessibility is `kSecAttrAccessibleAfterFirstUnlock`, so the app can send
 requests in the background (e.g. from a Live Activity or notification
@@ -343,7 +345,7 @@ generation path receives ordinary text messages after retrieval.
 
 `ChatSettings.theme` stores an `AppTheme` (`.system` / `.light` / `.dark`),
 mirrored to `UserDefaults` like the other non-secret settings.
-`demo_appApp` reads it and applies `.preferredColorScheme(settings.theme.colorScheme)`
+`AIChatApp` reads it and applies `.preferredColorScheme(settings.theme.colorScheme)`
 at the `WindowGroup` root, so the whole app (all sheets included) follows
 the chosen theme; `.system` maps to `nil`, which defers to the OS-level
 appearance setting. `SettingsView` exposes it as a segmented picker in the
@@ -427,7 +429,7 @@ place yet.
 
 ## Known gaps / suggested next steps
 
-- **Test coverage**: `demo-appTests` covers `ChatSettings` temperature
+- **Test coverage**: `ai-chatTests` covers `ChatSettings` temperature
   persistence (including the 0.0-survives-relaunch case), plus (currently
   disabled — see `f83524d`) per-provider API key isolation,
   model-per-provider recall via `applyPreset(_:)`, legacy shared-key

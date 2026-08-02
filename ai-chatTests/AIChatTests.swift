@@ -1,6 +1,6 @@
 //
-//  demo_appTests.swift
-//  demo-appTests
+//  AIChatTests.swift
+//  ai-chatTests
 //
 //  Created by robert on 8/2/26.
 //
@@ -8,9 +8,9 @@
 import Testing
 import Foundation
 import FoundationModels
-@testable import demo_app
+@testable import AIChat
 
-struct demo_appTests {
+struct AIChatTests {
 
     @Test(.disabled("Disabled: full test run was taking too long. Re-enable when test runtime is investigated/fixed."))
     func example() async throws {

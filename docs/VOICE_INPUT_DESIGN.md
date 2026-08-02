@@ -347,7 +347,7 @@ Accessibility:
 
 ## Permissions, Privacy, and Storage
 
-Add to `demo-app/Info.plist`:
+Add to `ai-chat/Info.plist`:
 
 ```xml
 <key>NSMicrophoneUsageDescription</key>
@@ -393,10 +393,10 @@ errors for debugging without logging transcript or audio content.
 
 Planned application changes:
 
-- Add `demo-app/VoiceInputSession.swift` for the module and state model.
-- Update `demo-app/ChatDetailView.swift` to own the session and draft policy.
-- Update `ChatInputBar` in `demo-app/ChatDetailView.swift` with microphone UI.
-- Update `demo-app/Info.plist` with microphone purpose text.
+- Add `ai-chat/VoiceInputSession.swift` for the module and state model.
+- Update `ai-chat/ChatDetailView.swift` to own the session and draft policy.
+- Update `ChatInputBar` in `ai-chat/ChatDetailView.swift` with microphone UI.
+- Update `ai-chat/Info.plist` with microphone purpose text.
 - Update `docs/ARCHITECTURE.md` after implementation to include the module and
   voice-input data flow.
 - Update `README.md` after implementation to advertise the feature and device

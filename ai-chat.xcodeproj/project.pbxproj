@@ -12,50 +12,50 @@
 			containerPortal = 044AAD5D301E538500285602 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 044AAD64301E538500285602;
-			remoteInfo = "demo-app";
+			remoteInfo = "ai-chat";
 		};
 		044AAD81301E538700285602 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 044AAD5D301E538500285602 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 044AAD64301E538500285602;
-			remoteInfo = "demo-app";
+			remoteInfo = "ai-chat";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		044AAD65301E538600285602 /* demo-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "demo-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		044AAD76301E538700285602 /* demo-appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "demo-appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		044AAD80301E538700285602 /* demo-appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "demo-appUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		044AAD65301E538600285602 /* ai-chat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ai-chat.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		044AAD76301E538700285602 /* ai-chatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ai-chatTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		044AAD80301E538700285602 /* ai-chatUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ai-chatUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		044AAD88301E538700285602 /* Exceptions for "demo-app" folder in "demo-app" target */ = {
+		044AAD88301E538700285602 /* Exceptions for "ai-chat" folder in "ai-chat" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 044AAD64301E538500285602 /* demo-app */;
+			target = 044AAD64301E538500285602 /* ai-chat */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		044AAD67301E538600285602 /* demo-app */ = {
+		044AAD67301E538600285602 /* ai-chat */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				044AAD88301E538700285602 /* Exceptions for "demo-app" folder in "demo-app" target */,
+				044AAD88301E538700285602 /* Exceptions for "ai-chat" folder in "ai-chat" target */,
 			);
-			path = "demo-app";
+			path = "ai-chat";
 			sourceTree = "<group>";
 		};
-		044AAD79301E538700285602 /* demo-appTests */ = {
+		044AAD79301E538700285602 /* ai-chatTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "demo-appTests";
+			path = "ai-chatTests";
 			sourceTree = "<group>";
 		};
-		044AAD83301E538700285602 /* demo-appUITests */ = {
+		044AAD83301E538700285602 /* ai-chatUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "demo-appUITests";
+			path = "ai-chatUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,9 +88,9 @@
 		044AAD5C301E538500285602 = {
 			isa = PBXGroup;
 			children = (
-				044AAD67301E538600285602 /* demo-app */,
-				044AAD79301E538700285602 /* demo-appTests */,
-				044AAD83301E538700285602 /* demo-appUITests */,
+				044AAD67301E538600285602 /* ai-chat */,
+				044AAD79301E538700285602 /* ai-chatTests */,
+				044AAD83301E538700285602 /* ai-chatUITests */,
 				044AAD66301E538600285602 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,9 +98,9 @@
 		044AAD66301E538600285602 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				044AAD65301E538600285602 /* demo-app.app */,
-				044AAD76301E538700285602 /* demo-appTests.xctest */,
-				044AAD80301E538700285602 /* demo-appUITests.xctest */,
+				044AAD65301E538600285602 /* ai-chat.app */,
+				044AAD76301E538700285602 /* ai-chatTests.xctest */,
+				044AAD80301E538700285602 /* ai-chatUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		044AAD64301E538500285602 /* demo-app */ = {
+		044AAD64301E538500285602 /* ai-chat */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 044AAD89301E538700285602 /* Build configuration list for PBXNativeTarget "demo-app" */;
+			buildConfigurationList = 044AAD89301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chat" */;
 			buildPhases = (
 				044AAD61301E538500285602 /* Sources */,
 				044AAD62301E538500285602 /* Frameworks */,
@@ -121,18 +121,18 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				044AAD67301E538600285602 /* demo-app */,
+				044AAD67301E538600285602 /* ai-chat */,
 			);
-			name = "demo-app";
+			name = "ai-chat";
 			packageProductDependencies = (
 			);
-			productName = "demo-app";
-			productReference = 044AAD65301E538600285602 /* demo-app.app */;
+			productName = "ai-chat";
+			productReference = 044AAD65301E538600285602 /* ai-chat.app */;
 			productType = "com.apple.product-type.application";
 		};
-		044AAD75301E538700285602 /* demo-appTests */ = {
+		044AAD75301E538700285602 /* ai-chatTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 044AAD8E301E538700285602 /* Build configuration list for PBXNativeTarget "demo-appTests" */;
+			buildConfigurationList = 044AAD8E301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chatTests" */;
 			buildPhases = (
 				044AAD72301E538700285602 /* Sources */,
 				044AAD73301E538700285602 /* Frameworks */,
@@ -144,18 +144,18 @@
 				044AAD78301E538700285602 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				044AAD79301E538700285602 /* demo-appTests */,
+				044AAD79301E538700285602 /* ai-chatTests */,
 			);
-			name = "demo-appTests";
+			name = "ai-chatTests";
 			packageProductDependencies = (
 			);
-			productName = "demo-appTests";
-			productReference = 044AAD76301E538700285602 /* demo-appTests.xctest */;
+			productName = "ai-chatTests";
+			productReference = 044AAD76301E538700285602 /* ai-chatTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		044AAD7F301E538700285602 /* demo-appUITests */ = {
+		044AAD7F301E538700285602 /* ai-chatUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 044AAD91301E538700285602 /* Build configuration list for PBXNativeTarget "demo-appUITests" */;
+			buildConfigurationList = 044AAD91301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chatUITests" */;
 			buildPhases = (
 				044AAD7C301E538700285602 /* Sources */,
 				044AAD7D301E538700285602 /* Frameworks */,
@@ -167,13 +167,13 @@
 				044AAD82301E538700285602 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				044AAD83301E538700285602 /* demo-appUITests */,
+				044AAD83301E538700285602 /* ai-chatUITests */,
 			);
-			name = "demo-appUITests";
+			name = "ai-chatUITests";
 			packageProductDependencies = (
 			);
-			productName = "demo-appUITests";
-			productReference = 044AAD80301E538700285602 /* demo-appUITests.xctest */;
+			productName = "ai-chatUITests";
+			productReference = 044AAD80301E538700285602 /* ai-chatUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 044AAD60301E538500285602 /* Build configuration list for PBXProject "demo-app" */;
+			buildConfigurationList = 044AAD60301E538500285602 /* Build configuration list for PBXProject "ai-chat" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,9 +213,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				044AAD64301E538500285602 /* demo-app */,
-				044AAD75301E538700285602 /* demo-appTests */,
-				044AAD7F301E538700285602 /* demo-appUITests */,
+				044AAD64301E538500285602 /* ai-chat */,
+				044AAD75301E538700285602 /* ai-chatTests */,
+				044AAD7F301E538700285602 /* ai-chatUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -271,12 +271,12 @@
 /* Begin PBXTargetDependency section */
 		044AAD78301E538700285602 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 044AAD64301E538500285602 /* demo-app */;
+			target = 044AAD64301E538500285602 /* ai-chat */;
 			targetProxy = 044AAD77301E538700285602 /* PBXContainerItemProxy */;
 		};
 		044AAD82301E538700285602 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 044AAD64301E538500285602 /* demo-app */;
+			target = 044AAD64301E538500285602 /* ai-chat */;
 			targetProxy = 044AAD81301E538700285602 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -287,14 +287,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "demo-app/demo_app.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "ai-chat/ai-chat.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7TMZ768N35;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "demo-app/Info.plist";
+				INFOPLIST_FILE = "ai-chat/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "AI Chat";
+				PRODUCT_MODULE_NAME = AIChat;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -323,14 +324,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "demo-app/demo_app.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "ai-chat/ai-chat.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7TMZ768N35;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "demo-app/Info.plist";
+				INFOPLIST_FILE = "ai-chat/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "AI Chat";
+				PRODUCT_MODULE_NAME = AIChat;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -495,7 +497,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/demo-app.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/demo-app";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ai-chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ai-chat";
 			};
 			name = Debug;
 		};
@@ -517,7 +519,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/demo-app.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/demo-app";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ai-chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ai-chat";
 			};
 			name = Release;
 		};
@@ -537,7 +539,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = "demo-app";
+				TEST_TARGET_NAME = "ai-chat";
 			};
 			name = Debug;
 		};
@@ -557,14 +559,14 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = "demo-app";
+				TEST_TARGET_NAME = "ai-chat";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		044AAD60301E538500285602 /* Build configuration list for PBXProject "demo-app" */ = {
+		044AAD60301E538500285602 /* Build configuration list for PBXProject "ai-chat" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				044AAD8C301E538700285602 /* Debug */,
@@ -573,7 +575,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		044AAD89301E538700285602 /* Build configuration list for PBXNativeTarget "demo-app" */ = {
+		044AAD89301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chat" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				044AAD8A301E538700285602 /* Debug */,
@@ -582,7 +584,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		044AAD8E301E538700285602 /* Build configuration list for PBXNativeTarget "demo-appTests" */ = {
+		044AAD8E301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chatTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				044AAD8F301E538700285602 /* Debug */,
@@ -591,7 +593,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		044AAD91301E538700285602 /* Build configuration list for PBXNativeTarget "demo-appUITests" */ = {
+		044AAD91301E538700285602 /* Build configuration list for PBXNativeTarget "ai-chatUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				044AAD92301E538700285602 /* Debug */,

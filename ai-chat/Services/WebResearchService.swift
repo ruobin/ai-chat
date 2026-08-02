@@ -1,6 +1,6 @@
 //
 //  WebResearchService.swift
-//  demo-app
+//  ai-chat
 //
 //  Bounded, citation-ready web evidence for every chat provider.
 //

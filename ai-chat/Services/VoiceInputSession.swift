@@ -1,6 +1,6 @@
 //
 //  VoiceInputSession.swift
-//  demo-app
+//  ai-chat
 //
 //  Live, entirely on-device transcription via SpeechAnalyzer.
 //

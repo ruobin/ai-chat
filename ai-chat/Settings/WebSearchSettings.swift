@@ -1,6 +1,6 @@
 //
 //  WebSearchSettings.swift
-//  demo-app
+//  ai-chat
 //
 
 import Foundation

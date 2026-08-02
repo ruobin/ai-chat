@@ -1,6 +1,6 @@
 //
 //  ChatService.swift
-//  demo-app
+//  ai-chat
 //
 //  OpenAI-compatible streaming chat completions client.
 //  Works with OpenAI, Anthropic, Google, DeepSeek, xAI, OpenRouter, Ollama,

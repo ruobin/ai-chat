@@ -1,6 +1,6 @@
 //
 //  ChatDetailView.swift
-//  demo-app
+//  ai-chat
 //
 
 import SwiftUI

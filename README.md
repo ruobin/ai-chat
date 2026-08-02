@@ -7,9 +7,10 @@ preset or point it at a custom endpoint, paste in an API key (or skip it for
 local servers), and start chatting. Conversations are persisted locally with
 SwiftData.
 
-The app displays as **AI Chat** on the home screen (`CFBundleDisplayName`);
-the underlying Xcode project, target, and scheme are still named `demo-app`
-throughout this repo and its tooling (see below).
+The app displays as **AI Chat** on the home screen (`CFBundleDisplayName`),
+and the Xcode project, target, and scheme are all named `ai-chat`. The bundle
+identifier is deliberately still `com.robert.demo-app`, so existing installs
+keep upgrading in place instead of being orphaned.
 
 ## Features
 
@@ -49,8 +50,8 @@ throughout this repo and its tooling (see below).
 
 ## Getting started
 
-1. Open `demo-app.xcodeproj` in Xcode.
-2. Build and run the `demo-app` scheme on a simulator or device.
+1. Open `ai-chat.xcodeproj` in Xcode.
+2. Build and run the `ai-chat` scheme on a simulator or device.
 3. Zero-config option: in Settings, pick the **Apple Intelligence** preset —
    no key needed on a capable device. Otherwise pick a provider preset,
    paste an API key (skip this for Ollama/local), and choose a model.
@@ -62,9 +63,9 @@ provider (except Apple Intelligence, which needs none).
 ## Project layout
 
 ```
-demo-app/
+ai-chat/
   App/
-    demo_appApp.swift     App entry point, SwiftData ModelContainer setup
+    AIChatApp.swift     App entry point, SwiftData ModelContainer setup
   Models/
     Conversation.swift    SwiftData model (incl. per-conversation provider)
     Message.swift         SwiftData model
@@ -84,16 +85,16 @@ demo-app/
     Markdown/
       MarkdownContent.swift  Markdown block parser, citations, link safety
       MarkdownText.swift     SwiftUI renderer for parsed blocks
-  Assets.xcassets, Info.plist, demo_app.entitlements
-demo-appTests/            Unit test target (Swift Testing)
-demo-appUITests/          UI test target (XCTest)
+  Assets.xcassets, Info.plist, ai-chat.entitlements
+ai-chatTests/            Unit test target (Swift Testing)
+ai-chatUITests/          UI test target (XCTest)
 docs/
   ARCHITECTURE.md         Component map, data flow, known gaps
 ```
 
 The Xcode target uses a synchronized root group, so these folders are
 picked up automatically — adding or moving a `.swift` file under
-`demo-app/` needs no `project.pbxproj` edit.
+`ai-chat/` needs no `project.pbxproj` edit.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a deeper look at how
 the pieces fit together.
@@ -103,11 +104,11 @@ the pieces fit together.
 Run tests from Xcode (`Cmd+U`) or:
 
 ```sh
-xcodebuild test -project demo-app.xcodeproj -scheme demo-app \
+xcodebuild test -project ai-chat.xcodeproj -scheme ai-chat \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-`demo-appTests` covers `ChatSettings` temperature persistence, the Apple
+`ai-chatTests` covers `ChatSettings` temperature persistence, the Apple
 Intelligence preset (sentinel detection, transcript construction), and
 (currently disabled — see commit history) per-provider key/model scoping,
 `ProviderPreset.detect`, and per-conversation provider overrides. See

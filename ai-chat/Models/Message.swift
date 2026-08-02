@@ -1,6 +1,6 @@
 //
 //  Message.swift
-//  demo-app
+//  ai-chat
 //
 
 import Foundation

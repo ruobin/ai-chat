@@ -52,8 +52,8 @@ documentation, policies, and first-party developer material.
 | Ollama tools | No | Ollama exposes function calls, not a built-in internet service; the app has no tool loop. |
 | Tavily or Brave retrieval API | No, not directly | These are retrieval endpoints, not `/chat/completions`. A backend/prefetch stage can add their results to messages and then reuse the current model transport. |
 
-Repo evidence: [`ChatService.swift`](../demo-app/ChatService.swift) lines 40-49,
-95-106, 133-143, and 187-200; [`AppleIntelligenceService.swift`](../demo-app/AppleIntelligenceService.swift)
+Repo evidence: [`ChatService.swift`](../ai-chat/ChatService.swift) lines 40-49,
+95-106, 133-143, and 187-200; [`AppleIntelligenceService.swift`](../ai-chat/AppleIntelligenceService.swift)
 lines 110-116 and 151-152.
 
 ## Provider Interfaces

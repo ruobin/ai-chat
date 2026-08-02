@@ -1,13 +1,13 @@
 //
-//  demo_appApp.swift
-//  demo-app
+//  AIChatApp.swift
+//  ai-chat
 //
 
 import SwiftUI
 import SwiftData
 
 @main
-struct demo_appApp: App {
+struct AIChatApp: App {
     @State private var settings = ChatSettings.shared
 
     var sharedModelContainer: ModelContainer = {

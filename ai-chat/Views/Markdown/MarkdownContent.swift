@@ -1,6 +1,6 @@
 //
 //  MarkdownContent.swift
-//  demo-app
+//  ai-chat
 //
 //  Parses assistant replies into renderable Markdown blocks.
 //

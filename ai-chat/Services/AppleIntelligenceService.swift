@@ -1,6 +1,6 @@
 //
 //  AppleIntelligenceService.swift
-//  demo-app
+//  ai-chat
 //
 //  On-device chat via Apple Intelligence's Foundation Models framework
 //  (iOS 26+). No API key, no network — generation runs locally in the

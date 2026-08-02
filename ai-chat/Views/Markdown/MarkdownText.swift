@@ -1,6 +1,6 @@
 //
 //  MarkdownText.swift
-//  demo-app
+//  ai-chat
 //
 //  Draws the blocks produced by `MarkdownContent` inside a chat bubble.
 //

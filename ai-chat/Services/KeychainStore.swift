@@ -1,6 +1,6 @@
 //
 //  KeychainStore.swift
-//  demo-app
+//  ai-chat
 //
 //  Secure storage for user-provided API keys.
 //
@@ -20,6 +20,10 @@ enum KeychainError: LocalizedError {
 }
 
 enum KeychainStore {
+    /// Deliberately still says `demo-app`: saved API keys are filed under
+    /// this exact string, so renaming it would orphan every key already in
+    /// the Keychain. It's internal storage the user never sees, and not
+    /// worth a migration just for cosmetic consistency with the app name.
     static let service = "com.demo-app.byok"
 
     static func save(_ value: String, for account: String) throws {

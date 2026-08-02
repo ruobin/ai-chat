@@ -556,17 +556,17 @@ section rather than dropping the user at the top of the general form.
 
 Planned application changes:
 
-- Add `demo-app/WebResearchService.swift` for research values, budgeting,
+- Add `ai-chat/WebResearchService.swift` for research values, budgeting,
   sanitation, and orchestration.
-- Add `demo-app/BraveSearchClient.swift` for the internal HTTP adapter.
-- Add `demo-app/WebSearchSettings.swift` for Keychain/defaults state.
-- Update `demo-app/ChatDetailView.swift` with one-shot search mode, search state,
+- Add `ai-chat/BraveSearchClient.swift` for the internal HTTP adapter.
+- Add `ai-chat/WebSearchSettings.swift` for Keychain/defaults state.
+- Update `ai-chat/ChatDetailView.swift` with one-shot search mode, search state,
   turn orchestration, and source rendering.
-- Update `demo-app/ChatService.swift` only if provider-message construction is
+- Update `ai-chat/ChatService.swift` only if provider-message construction is
   moved out of the view; its wire request need not change.
-- Update `demo-app/Message.swift` and `demo_appApp.swift` with a versioned schema
+- Update `ai-chat/Message.swift` and `AIChatApp.swift` with a versioned schema
   and migration plan.
-- Update `demo-app/SettingsView.swift` with Brave key management and disclosure.
+- Update `ai-chat/SettingsView.swift` with Brave key management and disclosure.
 - Update README and architecture documentation after implementation.
 
 No entitlement, browser engine, HTML parser, model-provider endpoint, or

@@ -1,6 +1,6 @@
 //
 //  ChatSettings.swift
-//  demo-app
+//  ai-chat
 //
 //  User-configurable settings for the chat provider. API key lives in Keychain;
 //  everything else is mirrored to UserDefaults so it survives launches.
