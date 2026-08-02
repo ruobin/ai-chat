@@ -32,12 +32,15 @@ struct ChatDetailView: View {
     private let webResearchService = WebResearchService()
     private let webSearchSettings = WebSearchSettings.shared
 
+    @FocusState private var composerFocused: Bool
+
     var body: some View {
         VStack(spacing: 0) {
             messageList
             Divider()
             ChatInputBar(
                 text: $inputText,
+                focused: $composerFocused,
                 isStreaming: isStreaming,
                 voiceState: voiceInput.state,
                 webSearchEnabled: $webSearchEnabled,
@@ -175,6 +178,12 @@ struct ChatDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
+            }
+            // Two standard ways out of the keyboard: drag the list down
+            // (interactive, like Messages) or tap anywhere in it.
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                composerFocused = false
             }
             .defaultScrollAnchor(.bottom)
             .onChange(of: conversation.messages.count) { _, _ in
@@ -888,6 +897,9 @@ private struct ModelProviderPickerSheet: View {
 
 private struct ChatInputBar: View {
     @Binding var text: String
+    // Owned by ChatDetailView so tapping or dragging the message list can
+    // dismiss the keyboard.
+    let focused: FocusState<Bool>.Binding
     let isStreaming: Bool
     let voiceState: VoiceInputState
     @Binding var webSearchEnabled: Bool
@@ -898,8 +910,6 @@ private struct ChatInputBar: View {
     let onToggleWebSearch: () -> Void
     let onSend: () -> Void
     let onStop: () -> Void
-
-    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -923,7 +933,7 @@ private struct ChatInputBar: View {
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Message…", text: $text, axis: .vertical)
                     .lineLimit(1...6)
-                    .focused($focused)
+                    .focused(focused)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color.secondary.opacity(0.1))
