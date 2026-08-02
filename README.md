@@ -63,24 +63,37 @@ provider (except Apple Intelligence, which needs none).
 
 ```
 demo-app/
-  demo_appApp.swift      App entry point, SwiftData ModelContainer setup
-  ContentView.swift       Sidebar + navigation split view, conversation list
-  ChatDetailView.swift    Message list, throttled streaming bubble, input bar
-  SettingsView.swift      Provider/model/API key/system prompt/temperature UI
-  ChatService.swift       OpenAI-compatible streaming HTTP client
-  AppleIntelligenceService.swift  On-device model via Foundation Models
-  VoiceInputSession.swift  Live on-device speech capture and transcription
-  WebResearchService.swift  Brave retrieval, evidence limits, source validation
-  WebSearchSettings.swift  Brave key and disclosure preference storage
-  ChatSettings.swift      Observable settings store + provider presets
-  Conversation.swift      SwiftData model (incl. per-conversation provider)
-  Message.swift           SwiftData model
-  KeychainStore.swift     Keychain read/write/delete wrapper for the API key
+  App/
+    demo_appApp.swift     App entry point, SwiftData ModelContainer setup
+  Models/
+    Conversation.swift    SwiftData model (incl. per-conversation provider)
+    Message.swift         SwiftData model
+  Services/
+    ChatService.swift     OpenAI-compatible streaming HTTP client
+    AppleIntelligenceService.swift  On-device model via Foundation Models
+    VoiceInputSession.swift         Live on-device speech capture
+    WebResearchService.swift        Brave retrieval, limits, source validation
+    KeychainStore.swift   Keychain read/write/delete wrapper for API keys
+  Settings/
+    ChatSettings.swift    Observable settings store + provider presets
+    WebSearchSettings.swift  Brave key and disclosure preference storage
+  Views/
+    ContentView.swift     Sidebar + navigation split view, conversation list
+    ChatDetailView.swift  Message list, throttled streaming bubble, input bar
+    SettingsView.swift    Provider/model/key/system prompt/temperature UI
+    Markdown/
+      MarkdownContent.swift  Markdown block parser, citations, link safety
+      MarkdownText.swift     SwiftUI renderer for parsed blocks
+  Assets.xcassets, Info.plist, demo_app.entitlements
 demo-appTests/            Unit test target (Swift Testing)
 demo-appUITests/          UI test target (XCTest)
 docs/
   ARCHITECTURE.md         Component map, data flow, known gaps
 ```
+
+The Xcode target uses a synchronized root group, so these folders are
+picked up automatically — adding or moving a `.swift` file under
+`demo-app/` needs no `project.pbxproj` edit.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a deeper look at how
 the pieces fit together.
