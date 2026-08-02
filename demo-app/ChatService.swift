@@ -112,13 +112,14 @@ struct ChatService {
     /// each `Conversation` stream against its own remembered provider/model
     /// (see `Conversation.effectiveBaseURL`/`effectiveModelName`) without
     /// mutating (or being affected by concurrent mutation of) the global
-    /// settings singleton. `onToken` is invoked for each incremental
-    /// content chunk as it arrives from the provider.
+    /// settings singleton. `onToken` is invoked on the main actor for each
+    /// incremental content chunk as it arrives from the provider, so callers
+    /// can safely update UI state from it.
     func streamCompletion(
         baseURL: String,
         model: String,
         messages: [ProviderChatMessage],
-        onToken: @escaping @Sendable (String) async -> Void
+        onToken: @MainActor (String) -> Void
     ) async throws {
         let apiKey = settings.apiKey(forBaseURL: baseURL) ?? ""
         let preset = ProviderPreset.detect(from: baseURL)
@@ -183,6 +184,7 @@ struct ChatService {
             throw ChatProviderError.http(http?.statusCode ?? -1, bodyText.isEmpty ? nil : bodyText)
         }
 
+        let decoder = JSONDecoder()
         for try await line in bytes.lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard trimmed.hasPrefix("data:") else { continue }
@@ -191,7 +193,7 @@ struct ChatService {
                 .trimmingCharacters(in: .whitespaces)
             if payload == "[DONE]" { return }
             guard let data = payload.data(using: .utf8) else { continue }
-            guard let parsed = try? JSONDecoder().decode(ProviderStreamResponse.self, from: data),
+            guard let parsed = try? decoder.decode(ProviderStreamResponse.self, from: data),
                   let token = parsed.choices.first?.delta?.content,
                   !token.isEmpty
             else { continue }

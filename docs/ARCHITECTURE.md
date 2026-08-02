@@ -68,8 +68,11 @@ migration code needed.
 ### Settings (`ChatSettings`)
 
 `ChatSettings` is an `@Observable` singleton (`.shared`) that mirrors
-non-secret settings (base URL, model name, system prompt, temperature) to
-`UserDefaults`, and delegates the API key to `KeychainStore`. It exposes:
+non-secret settings (base URL, model name, system prompt, temperature,
+theme) to `UserDefaults`, and delegates the API key to `KeychainStore`.
+Temperature is loaded via `object(forKey:)` rather than `double(forKey:)`
+so an explicitly saved `0.0` is not mistaken for "never set" and replaced
+with the `0.7` default on relaunch. It exposes:
 
 - `detectedPreset` — infers which `ProviderPreset` matches the current base
   URL by exact string match, defaulting to `.custom`. This is best-effort;
@@ -158,7 +161,12 @@ the global `ChatSettings.shared` singleton.
 `stream: true`, using `URLSession.bytes(for:)` to consume the response as
 an async line sequence. It expects Server-Sent Events framing (`data: ...`
 lines, terminated by `data: [DONE]`), and decodes each JSON payload's
-`choices[0].delta.content` into the `onToken` callback.
+`choices[0].delta.content` into the `onToken` callback. `onToken` is
+`@MainActor`-isolated, so although the SSE loop itself runs off the main
+actor, tokens are always delivered on it and callers can update view state
+directly. Cancelling the surrounding task (the chat view's stop button)
+aborts the stream and propagates `CancellationError`/`URLError.cancelled`,
+which the view treats as "stopped by user" rather than a failure.
 
 Error handling:
 - Missing API key when the preset requires one → `.missingAPIKey` before
@@ -200,17 +208,23 @@ again.
   (via `@Query`), with new/delete actions and gating: if no API key is set,
   `SettingsView` is presented automatically on first appearance.
 - **`ChatDetailView`** — owns the send/stream loop. On send, it appends a
-  user `Message`, saves, then starts a `Task` that calls
+  user `Message`, saves, then starts a cancellable `Task` that calls
   `ChatService.streamCompletion` with the conversation's own
-  `effectiveBaseURL`/`effectiveModelName`, appending tokens to a local
-  `streamingContent` buffer (rendered as a separate "streaming bubble" while
-  in flight) before committing the final text as an assistant `Message` on
-  completion or as an inline error message on failure. The navigation bar
-  title area shows this conversation's active provider/model and is
-  tappable to open `ModelProviderPickerSheet` — a scoped version of the
-  provider/model pickers from `SettingsView`, but editing the
-  conversation's own override (see "Per-conversation provider/model"
-  above) rather than the global default.
+  `effectiveBaseURL`/`effectiveModelName`. Incoming tokens land in a
+  private `@Observable StreamBuffer` that flushes into view state at most
+  ~15×/s (rather than per token), so a fast stream doesn't force a full
+  view re-render — and a re-sort of the message list — on every chunk. A
+  final `flush()` on completion/cancel guarantees no trailing tokens are
+  lost. The streaming text is rendered as a separate "streaming bubble"
+  while in flight, then committed as an assistant `Message` on success, as
+  an inline ⚠️ error message on failure, or as a partial reply (no alert)
+  if the user taps stop. The send button becomes a stop button while
+  streaming. The navigation-bar title area shows this conversation's
+  active provider/model and is tappable to open
+  `ModelProviderPickerSheet` — a scoped version of the provider/model
+  pickers from `SettingsView`, but editing the conversation's own override
+  (see "Per-conversation provider/model" above) rather than the global
+  default.
 - **`SettingsView`** — provider preset picker (drives base URL + model
   defaults), base URL/model/system prompt/temperature editors, the
   API key save/remove flow, a "Fetch available models" action that
@@ -237,6 +251,8 @@ actions on `MessageBubble`:
 - **Retry** (on a user message) — deletes everything *after* that message
   (typically a failed or unwanted assistant reply) and re-requests a
   completion using the same history up to and including that user message.
+  If the message is already the last one, there is nothing to delete and it
+  simply re-requests a response.
 - **Regenerate** (on an assistant message, also shown as a small inline
   button under the most recent assistant reply) — deletes that message and
   everything after it, then re-requests a completion.
@@ -255,11 +271,14 @@ side by side.
 3. A `Task` builds the full provider message list (system prompt + all
    non-system messages in chronological order) and calls
    `ChatService.streamCompletion`.
-4. Each streamed token is appended to `streamingContent`, which re-renders
-   the `StreamingBubble` in real time.
+4. Each streamed token is appended to the `StreamBuffer`, which re-renders
+   the `StreamingBubble` in real time (throttled to ~15 updates/s; a final
+   `flush()` on completion guarantees no trailing tokens are lost).
 5. On stream completion, the accumulated text becomes an `assistant`
    `Message`, appended and persisted. On failure, an error `Message`
-   (prefixed with ⚠️) is appended instead, and an alert is shown.
+   (prefixed with ⚠️) is appended instead, and an alert is shown. On
+   cancellation (stop button), whatever text had arrived is persisted as a
+   partial reply with no alert.
 
 Note the full message history is resent on every turn (no server-side
 session/thread state) — this is standard for stateless chat completion
@@ -268,11 +287,13 @@ truncation/summarization strategy in place yet.
 
 ## Known gaps / suggested next steps
 
-- **Test coverage**: `demo-appTests` now covers `ChatSettings`'
-  per-provider API key isolation, model-per-provider recall via
-  `applyPreset(_:)`, legacy shared-key migration, `ProviderPreset.detect`,
-  and `Conversation`'s per-conversation override/fallback semantics. Still
-  missing: `ChatService` SSE parsing (given canned byte streams) and
+- **Test coverage**: `demo-appTests` covers `ChatSettings` temperature
+  persistence (including the 0.0-survives-relaunch case), plus (currently
+  disabled — see `f83524d`) per-provider API key isolation,
+  model-per-provider recall via `applyPreset(_:)`, legacy shared-key
+  migration, `ProviderPreset.detect`, and `Conversation`'s
+  per-conversation override/fallback semantics. Still missing:
+  `ChatService` SSE parsing (given canned byte streams) and
   `KeychainStore` round-trip save/read/delete in isolation.
 - **Schema migration**: no `VersionedSchema`/`SchemaMigrationPlan` exists
   yet for `Conversation`/`Message`; add one before the first schema change

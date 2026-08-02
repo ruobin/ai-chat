@@ -20,6 +20,34 @@ struct demo_appTests {
 
 }
 
+/// Covers `ChatSettings`' temperature persistence. Regression test: an
+/// explicitly-saved 0.0 must survive a relaunch (previously indistinguishable
+/// from "never set" via `UserDefaults.double(forKey:)`, and reset to 0.7).
+@Suite struct ChatSettingsTemperatureTests {
+    @Test func explicitlyZeroTemperatureSurvivesRelaunch() {
+        let suite = "ChatSettingsTests.temperatureZero"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let first = ChatSettings(defaults: defaults)
+        first.temperature = 0.0
+
+        let relaunched = ChatSettings(defaults: defaults)
+        #expect(relaunched.temperature == 0.0)
+    }
+
+    @Test func temperatureDefaultsTo07WhenNeverSet() {
+        let suite = "ChatSettingsTests.temperatureDefault"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let settings = ChatSettings(defaults: defaults)
+        #expect(settings.temperature == 0.7)
+    }
+}
+
 /// Covers the per-provider API key scoping in `ChatSettings`. Each test uses
 /// its own `UserDefaults` suite and its own unique fake base URLs (rather
 /// than the real provider URLs, which could collide with another test

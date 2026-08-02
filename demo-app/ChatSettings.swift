@@ -98,8 +98,14 @@ final class ChatSettings {
             ?? "gpt-4o-mini"
         self.systemPrompt = defaults.string(forKey: Keys.systemPrompt)
             ?? "You are a helpful assistant."
-        let storedTemp = defaults.double(forKey: Keys.temperature)
-        self.temperature = storedTemp == 0 ? 0.7 : storedTemp
+        // Use object(forKey:) rather than double(forKey:) so an explicitly
+        // saved 0.0 isn't mistaken for "never set" and replaced with the
+        // default on the next launch.
+        if let storedTemp = defaults.object(forKey: Keys.temperature) as? Double {
+            self.temperature = storedTemp
+        } else {
+            self.temperature = 0.7
+        }
         self.theme = defaults.string(forKey: Keys.theme).flatMap(AppTheme.init(rawValue:))
             ?? .system
         migrateLegacyAPIKeyIfNeeded()

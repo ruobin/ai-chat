@@ -11,7 +11,6 @@ struct ContentView: View {
     @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
     @State private var selection: Conversation?
     @State private var showSettings: Bool = false
-    @State private var showOnboarding: Bool = false
 
     private var settings: ChatSettings { .shared }
 
@@ -24,12 +23,11 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
-        .sheet(isPresented: $showOnboarding) {
-            SettingsView()
-        }
         .onAppear {
+            // First-run onboarding: no key yet, so open Settings (the same
+            // sheet the gear button shows) automatically.
             if !settings.hasAPIKey {
-                showOnboarding = true
+                showSettings = true
             }
         }
     }

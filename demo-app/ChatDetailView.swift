@@ -11,8 +11,9 @@ struct ChatDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var inputText: String = ""
-    @State private var streamingContent: String = ""
+    @State private var streamBuffer = StreamBuffer()
     @State private var isStreaming: Bool = false
+    @State private var streamTask: Task<Void, Never>?
     @State private var errorMessage: String?
     @State private var showModelPicker: Bool = false
 
@@ -26,7 +27,8 @@ struct ChatDetailView: View {
             ChatInputBar(
                 text: $inputText,
                 isStreaming: isStreaming,
-                onSend: send
+                onSend: send,
+                onStop: stopStreaming
             )
         }
         .toolbar {
@@ -88,25 +90,29 @@ struct ChatDetailView: View {
 
     private var messageList: some View {
         ScrollViewReader { proxy in
+            // Sorted once per body evaluation rather than once per bubble
+            // (previously `isLastMessage` re-sorted the whole history for
+            // every row, on every streamed-token re-render).
+            let sorted = conversation.sortedMessages
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    if conversation.messages.isEmpty && !isStreaming {
+                    if sorted.isEmpty && !isStreaming {
                         EmptyChatHint()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 80)
                     }
-                    ForEach(conversation.sortedMessages) { message in
+                    ForEach(sorted) { message in
                         MessageBubble(
                             message: message,
                             isStreaming: isStreaming,
-                            isLastMessage: message.id == conversation.sortedMessages.last?.id,
+                            isLastMessage: message.id == sorted.last?.id,
                             onRetry: { regenerate(from: message, inclusive: false) },
                             onRegenerate: { regenerate(from: message, inclusive: true) }
                         )
                         .id(message.id)
                     }
                     if isStreaming {
-                        StreamingBubble(content: streamingContent)
+                        StreamingBubble(content: streamBuffer.content)
                             .id("streaming")
                     }
                 }
@@ -138,25 +144,25 @@ struct ChatDetailView: View {
         errorMessage = nil
 
         let userMessage = Message(role: .user, content: trimmed)
-        userMessage.conversation = conversation
-        conversation.messages.append(userMessage)
-        conversation.updatedAt = Date()
+        persist(userMessage)
         if conversation.title == "New chat" {
             conversation.title = String(trimmed.prefix(40))
+            try? modelContext.save()
         }
-        try? modelContext.save()
 
         startStreaming()
     }
 
     /// Streams a new assistant response using the conversation's current
     /// messages, appending the result (or an error message) on completion.
-    /// Shared by `send()` and the retry/regenerate actions.
+    /// Shared by `send()` and the retry/regenerate actions. Cancel via
+    /// `stopStreaming()`; whatever text arrived before cancellation is kept
+    /// as a partial reply rather than discarded.
     private func startStreaming() {
         isStreaming = true
-        streamingContent = ""
+        streamBuffer.reset()
 
-        Task { @MainActor in
+        streamTask = Task { @MainActor in
             do {
                 let providerMessages = buildProviderMessages()
                 try await service.streamCompletion(
@@ -164,49 +170,71 @@ struct ChatDetailView: View {
                     model: conversation.effectiveModelName,
                     messages: providerMessages
                 ) { token in
-                    streamingContent += token
+                    streamBuffer.append(token)
                 }
-                let assistant = Message(role: .assistant, content: streamingContent)
-                assistant.conversation = conversation
-                conversation.messages.append(assistant)
-                conversation.updatedAt = Date()
-                try? modelContext.save()
+                streamBuffer.flush()
+                if !streamBuffer.content.isEmpty {
+                    persist(Message(role: .assistant, content: streamBuffer.content))
+                }
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription
-                    ?? error.localizedDescription
-                let errorMsg = Message(
-                    role: .assistant,
-                    content: "⚠️ " + ((error as? LocalizedError)?.errorDescription
-                        ?? error.localizedDescription)
-                )
-                errorMsg.conversation = conversation
-                conversation.messages.append(errorMsg)
-                try? modelContext.save()
+                streamBuffer.flush()
+                let cancelled = error is CancellationError
+                    || (error as? URLError)?.code == .cancelled
+                if cancelled {
+                    // User tapped stop: keep whatever streamed in as a
+                    // partial reply, with no error alert.
+                    if !streamBuffer.content.isEmpty {
+                        persist(Message(role: .assistant, content: streamBuffer.content))
+                    }
+                } else {
+                    let description = (error as? LocalizedError)?.errorDescription
+                        ?? error.localizedDescription
+                    errorMessage = description
+                    persist(Message(role: .assistant, content: "⚠️ " + description))
+                }
             }
             isStreaming = false
-            streamingContent = ""
+            streamBuffer.reset()
+            streamTask = nil
         }
+    }
+
+    /// Cancels the in-flight stream, if any. The partial response is kept —
+    /// see `startStreaming()`'s cancellation path.
+    private func stopStreaming() {
+        streamTask?.cancel()
     }
 
     /// Removes `message` (if `inclusive`) or everything strictly after it,
     /// then requests a fresh assistant response. Used for "Retry" on a user
     /// message (removes the failed/unwanted response(s) that followed it)
     /// and "Regenerate" on an assistant message (discards it and anything
-    /// after, then asks the model again).
+    /// after, then asks the model again). When there is nothing to remove
+    /// (e.g. retrying the last user message), it simply re-requests.
     private func regenerate(from message: Message, inclusive: Bool) {
         guard !isStreaming else { return }
         let sorted = conversation.sortedMessages
         guard let idx = sorted.firstIndex(where: { $0.id == message.id }) else { return }
         let cutIndex = inclusive ? idx : idx + 1
-        guard cutIndex < sorted.count else { return }
         let toRemove = sorted[cutIndex...]
-        for msg in toRemove {
-            conversation.messages.removeAll { $0.id == msg.id }
-            modelContext.delete(msg)
+        if !toRemove.isEmpty {
+            let ids = Set(toRemove.map(\.id))
+            conversation.messages.removeAll { ids.contains($0.id) }
+            for msg in toRemove {
+                modelContext.delete(msg)
+            }
+            try? modelContext.save()
         }
-        try? modelContext.save()
         errorMessage = nil
         startStreaming()
+    }
+
+    /// Attaches `message` to this conversation, bumps `updatedAt`, and saves.
+    private func persist(_ message: Message) {
+        message.conversation = conversation
+        conversation.messages.append(message)
+        conversation.updatedAt = Date()
+        try? modelContext.save()
     }
 
     private func buildProviderMessages() -> [ProviderChatMessage] {
@@ -228,6 +256,44 @@ struct ChatDetailView: View {
             .map { "\($0.role.rawValue.capitalized): \($0.content)" }
             .joined(separator: "\n\n")
         UIPasteboard.general.string = text
+    }
+}
+
+/// Accumulates streamed tokens off the view's render path and flushes them
+/// into `content` at most ~15 times per second. Providers can deliver many
+/// SSE chunks per second; writing each one straight into view state forces a
+/// full view-tree re-render (and re-sort of the message list) per token,
+/// which drops frames on longer conversations. `pending` is not observed by
+/// the view, so appends between flushes are free.
+@MainActor @Observable
+private final class StreamBuffer {
+    private(set) var content = ""
+    @ObservationIgnored private var pending = ""
+    @ObservationIgnored private var flushScheduled = false
+
+    func append(_ token: String) {
+        pending += token
+        guard !flushScheduled else { return }
+        flushScheduled = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(66))
+            flushScheduled = false
+            flush()
+        }
+    }
+
+    /// Moves any buffered tokens into `content`, triggering at most one view
+    /// update. Also called on stream completion/cancellation so no trailing
+    /// tokens are lost.
+    func flush() {
+        guard !pending.isEmpty else { return }
+        content += pending
+        pending = ""
+    }
+
+    func reset() {
+        content = ""
+        pending = ""
     }
 }
 
@@ -543,6 +609,7 @@ private struct ChatInputBar: View {
     @Binding var text: String
     let isStreaming: Bool
     let onSend: () -> Void
+    let onStop: () -> Void
 
     @FocusState private var focused: Bool
 
@@ -558,11 +625,13 @@ private struct ChatInputBar: View {
                 .disabled(isStreaming)
                 .submitLabel(.send)
                 .onSubmit(onSend)
-            Button(action: onSend) {
+            Button(action: isStreaming ? onStop : onSend) {
                 Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
                     .font(.system(size: 32))
             }
-            .disabled(isStreaming || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            // While streaming the button is the stop action and must stay
+            // enabled; it only disables for empty input when sending.
+            .disabled(!isStreaming && text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
