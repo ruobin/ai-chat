@@ -78,9 +78,37 @@ both of which only the account owner can do. See "Next steps".
   crowded/taken on the App Store); new 30-char subtitle. Listing copy
   updated in `APP_STORE_RELEASE.md`.
 
+## Publish attempt — 2026-08-03
+
+A signed Release archive builds cleanly
+(`xcodebuild archive` → `build/Parley.xcarchive`, gitignored), but
+export/upload fails: **the Apple ID in Xcode
+(`ruobin.wang.us@gmail.com`) is a free personal team
+(`7TMZ768N35`, "Robin Wong (Personal Team)",
+`isFreeProvisioningTeam = 1`), which cannot access App Store
+Connect.** Publishing is hard-blocked on enrolling in the paid Apple
+Developer Program. Working upload command once enrolled:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -exportArchive \
+  -archivePath build/Parley.xcarchive \
+  -exportOptionsPlist build/ExportOptions.plist \
+  -allowProvisioningUpdates
+```
+
+(`ExportOptions.plist`: method `app-store-connect`, automatic signing,
+`destination upload`. Update `teamID` if enrollment creates a new team
+ID, which it usually does.)
+
 ## Next steps, in order (account owner only)
 
-1. **Host the two pages** at `https://parley.ai-dictionary.org/privacy`
+1. **Enroll in the Apple Developer Program** ($99/yr) at
+   developer.apple.com/programs/enroll with `ruobin.wang.us@gmail.com`
+   — identity verification + payment; activation can take a day or
+   two. Then sign into Xcode → Settings → Accounts so the new team
+   appears.
+2. **Host the two pages** at `https://parley.ai-dictionary.org/privacy`
    and `/support` (files in `website/`). Must be live before
    submission — App Review follows the in-app links.
 2. **Verify on a device/simulator** — age gate flow, Markdown
